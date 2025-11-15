@@ -1,0 +1,13 @@
+brand: "Turbo Services"
+domains:
+  primary: "turboservices.be"
+
+site:
+  router: "app"
+  repo_owner: "Turbo-89"
+  repo_name: "turboservices"
+  default_branch: "main"
+
+services:
+  - key: "ontstoppingen"
+   

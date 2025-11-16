@@ -1,13 +1,32 @@
 brand: "Turbo Services"
+
 domains:
   primary: "turboservices.be"
 
 site:
-  router: "app"
+  router: "app"                 # jouw Next.js gebruikt App Router
   repo_owner: "Turbo-89"
   repo_name: "turboservices"
   default_branch: "main"
 
 services:
-  - key: "ontstoppingen"
-   
+  - key: "ontstopping"
+    name: "Ontstoppingsdienst"
+  - key: "camera-inspectie"
+    name: "Camera-inspectie riolering"
+  - key: "rioolherstelling"
+    name: "Gerichte rioolherstellingen"
+
+regions:
+  - antwerpen
+  - mechelen
+  - mortsel
+  - wilrijk
+
+limits:
+  max_new_pages_per_day: 8
+  require_manual_approve_new_pages: true
+
+content:
+  tone: "zakelijk, helder, NL-BE"
+  cta: "Bel nu – binnen 1u ter plaatse"

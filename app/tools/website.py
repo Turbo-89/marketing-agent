@@ -1,154 +1,128 @@
-"""
-Website-tools: genereren en updaten van pagina's in de turboservices-repo.
-Hier wordt TSX gegenereerd voor Next.js App Router en via GitHub API weggeschreven.
-"""
+from __future__ import annotations
 
 import json
-from typing import Dict, Any
+from pathlib import Path
+from typing import Dict, Any, List
 
-from app.models.config_models import BusinessConfig, ServiceConfig
-from app.services.github_client import get_github_client_from_env
-from app.tools.hero_image import ensure_hero_image_in_repo
+from app.tools.content import ContentEngine
+from app.tools.hero_image import HeroImageEngine  # jouw bestaande hero engine gebruiken
 
-
-# Mapping tussen service keys in business.yml en slug in je Next.js-app
-SERVICE_SLUG_MAP = {
-    "ontstopping": "ontstoppingen",
-    "camera-inspectie": "camera-inspectie",
-    "rioolherstelling": "gerichte-rioolherstellingen",
-    # toekomstige diensten zoals "rookdetectie" kunnen gewoon 1:1 gebruikt worden
-}
+# Repo root = .../marketing-agent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
-def get_service_slug(service_key: str) -> str:
-    return SERVICE_SLUG_MAP.get(service_key, service_key)
-
-
-def build_page_path(service: ServiceConfig, region: str, business_config: BusinessConfig) -> str:
+class WebsiteGenerator:
     """
-    Voor App Router genereren we:
-    app/diensten/<service-slug>/<region>/page.tsx
-    → route: /diensten/<service-slug>/<region>
+    Genereert de volledige Next.js TSX-pagina voor een dienst + regio.
+    - Haalt content op via ContentEngine (deterministisch)
+    - Zorgt voor hero-afbeelding via HeroImageEngine
+    - Schrijft page.tsx naar app/diensten/{service}/{regio}/page.tsx
     """
-    slug = get_service_slug(service.key)
-    region_slug = region.lower()
-    return f"app/diensten/{slug}/{region_slug}/page.tsx"
 
+    def __init__(self) -> None:
+        self.content_engine = ContentEngine()
+        self.hero_engine = HeroImageEngine()
 
-def _js_string(value: str) -> str:
-    """
-    Maakt een geldige JS-string literal via json.dumps.
-    Voorbeeld: _js_string('test "x"') → "\"test \\\"x\\\"\""
-    Die string kan direct in TSX worden geplaatst.
-    """
-    return json.dumps(value, ensure_ascii=False)
+    # ---------- Hoofdfuncties ----------
 
+    def generate_page(self, service: str, region: str) -> str:
+        """
+        Gebruikt door /agent/test-generate:
+        - Bouwt content dict
+        - Zorgt dat hero-afbeelding bestaat
+        - Rendert TSX-content (string)
+        """
+        data = self.content_engine.generate_content(service, region)
+        hero_web_path = self.hero_engine.generate_if_missing(service, region)
+        return self._render_tsx(data, hero_web_path)
 
-def render_tsx(
-    service: ServiceConfig,
-    region: str,
-    business_config: BusinessConfig,
-    content: Dict,
-) -> str:
-    """
-    Maakt de inhoud van page.tsx voor een dienst+regio,
-    maar de visuele layout zit in de gedeelde DienstPageLayout-component
-    in je Next.js-project (components/diensten/DienstPage.tsx).
-    """
-    brand = business_config.brand
-    service_slug = get_service_slug(service.key)
-    region_cap = region.capitalize()
+    def write_page_to_disk(self, service: str, region: str, content: str) -> str:
+        """
+        Gebruikt door /agent/deploy:
+        - Schrijft de TSX-content naar app/diensten/{service}/{region}/page.tsx
+        - Geeft het absolute pad terug (handig voor logging)
+        """
+        target_dir = BASE_DIR / "app" / "diensten" / service / region
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target_file = target_dir / "page.tsx"
+        target_file.write_text(content, encoding="utf-8")
+        return str(target_file)
 
-    title = content.get("title", f"{service.name} in {region_cap} | {brand}")
-    h1 = content.get("h1", f"{service.name} in {region_cap}")
-    intro = content.get("intro", "")
-    sections = content.get("sections", [])
-    cta = content.get("cta", business_config.content.cta)
-    meta_title = content.get("metaTitle", title)
-    meta_desc = content.get("metaDescription", f"{service.name} in {region_cap} – {cta}")
+    # ---------- Interne helpers ----------
 
-    # JS-literals via json.dumps
-    js_meta_title = _js_string(meta_title)
-    js_meta_desc = _js_string(meta_desc)
+    def _render_tsx(self, data: Dict[str, Any], hero_web_path: str) -> str:
+        """
+        Zet het data-dict + hero-pad om in een geldige Next.js App Router page.tsx
+        die jouw bestaande DienstPageLayout gebruikt.
+        """
+        required_keys = [
+            "service",
+            "region",
+            "brand",
+            "serviceName",
+            "regionLabel",
+            "metadata_title",
+            "metadata_description",
+            "h1",
+            "intro",
+            "heroImageKey",
+            "sections",
+            "cta_title",
+            "cta_text",
+            "cta_btn",
+        ]
+        for key in required_keys:
+            if key not in data:
+                raise KeyError(f"ContentEngine ontbrekende key: {key}")
 
-    js_brand = _js_string(brand)
-    js_region_label = _js_string(region_cap)
-    js_service_name = _js_string(service.name)
-    js_h1 = _js_string(h1)
-    js_intro = _js_string(intro)
-    js_cta = _js_string(cta)
-    js_service_key = _js_string(service.key)
+        # eenvoudige escaping voor TSX strings
+        def esc(value: str) -> str:
+            if value is None:
+                return ""
+            return (
+                str(value)
+                .replace("\\", "\\\\")
+                .replace('"', '\\"')
+                .replace("\n", "\\n")
+            )
 
-    # sections als JSON-literal in TSX
-    js_sections = json.dumps(sections, ensure_ascii=False)
+        # secties als literal array in TSX
+        sections_literal = json.dumps(
+            data["sections"], ensure_ascii=False, indent=2
+        )
 
-    component_name = f"{service_slug.replace('-', ' ').title().replace(' ', '')}{region_cap}Page"
-
-    tsx = f"""import type {{ Metadata }} from "next";
-import {{ DienstPageLayout }} from "@/components/diensten/DienstPage";
-// Pas het importpad hierboven aan als jouw project geen "@" alias gebruikt.
+        # Hero wordt in layout zelf bepaald op basis van heroImageKey,
+        # maar we geven heroWebPath mee voor de volledigheid indien je het later wil gebruiken.
+        # Momenteel wordt heroImageKey gebruikt door jouw DienstPageLayout + hero.ts.
+        tsx = f'''import type {{ Metadata }} from "next";
+import DienstPageLayout from "@/components/diensten/DienstPage";
 
 export const metadata: Metadata = {{
-  title: {js_meta_title},
-  description: {js_meta_desc},
+  title: "{esc(data["metadata_title"])}",
+  description: "{esc(data["metadata_description"])}",
 }};
 
-export default function {component_name}() {{
+export default function Page() {{
   const props = {{
-    brand: {js_brand},
-    regionLabel: {js_region_label},
-    serviceName: {js_service_name},
-    h1: {js_h1},
-    intro: {js_intro},
-    sections: {js_sections},
-    cta: {js_cta},
-    serviceKey: {js_service_key},
-  }};
+    brand: "{esc(data["brand"])}",
+    regionLabel: "{esc(data["regionLabel"])}",
+    serviceName: "{esc(data["serviceName"])}",
+    h1: "{esc(data["h1"])}",
+    intro: "{esc(data["intro"])}",
+    sections: {sections_literal},
+    cta: {{
+      title: "{esc(data["cta_title"])}",
+      body: "{esc(data["cta_text"])}",
+      button: "{esc(data["cta_btn"])}",
+    }},
+    serviceKey: "{esc(data["service"])}",
+    heroImageKey: "{esc(data["heroImageKey"])}",
+    heroImagePath: "{esc(hero_web_path)}",
+  }} as const;
 
   return <DienstPageLayout {{...props}} />;
 }}
-"""
+'''
+        return tsx
 
-    return tsx
 
-
-def create_or_update_page_in_repo(
-    service: ServiceConfig,
-    region: str,
-    business_config: BusinessConfig,
-    content: Dict,
-) -> Dict[str, Any]:
-    """
-    Genereert de TSX-pagina en schrijft die via GitHub API weg naar de turboservices-repo.
-    Maakt nu ook automatisch een hero-afbeelding aan als die nog niet bestaat.
-    """
-    site_cfg = business_config.site
-    owner = site_cfg.repo_owner
-    repo = site_cfg.repo_name
-    branch = site_cfg.default_branch
-
-    # 1. Hero-afbeelding zeker stellen (doet niets als hij al bestaat)
-    hero_result = ensure_hero_image_in_repo(service, region, business_config)
-
-    # 2. TSX-pagina genereren
-    path = build_page_path(service, region, business_config)
-    tsx_content = render_tsx(service, region, business_config, content)
-
-    client = get_github_client_from_env(owner, repo)
-    message = f"feat(landing): {service.key} in {region}"
-
-    result = client.upsert_file(
-        path=path,
-        content_str=tsx_content,
-        message=message,
-        branch=branch,
-    )
-
-    return {
-        "service_key": service.key,
-        "region": region,
-        "path": path,
-        "commit_sha": result.get("commit", {}).get("sha"),
-        "html_url": result.get("content", {}).get("html_url"),
-        "hero_image": hero_result,
-    }

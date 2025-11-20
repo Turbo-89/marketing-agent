@@ -1,0 +1,27 @@
+{
+  "regions": [
+    { "name": "Antwerpen Stad", "slug": "antwerpen-stad" },
+    { "name": "Antwerpen Noordrand", "slug": "antwerpen-noordrand" },
+    { "name": "Antwerpen Zuidrand", "slug": "antwerpen-zuidrand" },
+    { "name": "Ruppelstreek", "slug": "ruppelstreek" },
+    { "name": "Klein-Brabant", "slug": "klein-brabant" },
+    { "name": "Waasland", "slug": "waasland" },
+    { "name": "Mechelen & Rivierenland", "slug": "mechelen-rivierenland" },
+    { "name": "Lier & Neteland", "slug": "lier-neteland" },
+    { "name": "Kempen Noord", "slug": "kempen-noord" },
+    { "name": "Kempen Zuid", "slug": "kempen-zuid" },
+    { "name": "Brussel Centrum", "slug": "brussel-centrum" },
+    { "name": "Brussel Noord", "slug": "brussel-noord" },
+    { "name": "Brussel Zuid", "slug": "brussel-zuid" },
+    { "name": "Noordrand Brussel", "slug": "noordrand-brussel" },
+    { "name": "Druivenstreek", "slug": "druivenstreek" },
+    { "name": "Pajottenland", "slug": "pajottenland" },
+    { "name": "Leuven & Dijleland", "slug": "leuven-dijleland" },
+    { "name": "Hageland", "slug": "hageland" },
+    { "name": "Durmestreek", "slug": "durmestreek-lokeren" },
+    { "name": "Sint-Niklaas regio", "slug": "sint-niklaas-regio" },
+    { "name": "Temse & omstreken", "slug": "temse-omgeving" },
+    { "name": "Denderstreek", "slug": "denderstreek" },
+    { "name": "Scheldeland", "slug": "scheldeland" }
+  ]
+}

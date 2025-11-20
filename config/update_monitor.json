@@ -1,0 +1,22 @@
+{
+  "ai_models": {
+    "last_checked": null,
+    "preferred_model": "gpt-4.1",
+    "fallback_model": "gpt-4o-mini"
+  },
+  "google_ads_api": {
+    "version": null,
+    "last_update": null
+  },
+  "meta_api": {
+    "version": null,
+    "last_update": null
+  },
+  "ga4_api": {
+    "schema_last_checked": null
+  },
+  "trend_cache": {
+    "last_refresh": null,
+    "keywords": []
+  }
+}

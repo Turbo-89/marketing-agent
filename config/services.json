@@ -1,0 +1,126 @@
+{
+  "services": {
+    "ontstoppingen": {
+      "title": "Ontstoppingen",
+      "description": "Ontstopping van wc, lavabo, douche en hoofdriolering. Turbo Services lost verstoppingen snel en professioneel op, ook ’s avonds en in het weekend aan hetzelfde tarief.",
+      "hero": "Ontstoppingen",
+      "intro": "Verstopte wc, lavabo, douche of hoofdriolering in {REGIO}? Turbo Services lost het op met professionele machines, ook ’s avonds en in het weekend aan hetzelfde tarief.",
+      "bullets": [
+        "Verstopte wc, douche, bad en lavabo",
+        "Keukenafvoer en vetleidingen",
+        "Hoofdriolering binnen en buiten de woning",
+        "Water dat terugkomt via vloerputjes of kelderafvoeren",
+        "Rioolgeur, borrelende geluiden en terugslagproblemen"
+      ],
+      "workflow": [
+        "Korte bevraging van het probleem",
+        "Inspectie van de betrokken afvoeren",
+        "Mechanische ontstopping met professionele apparatuur",
+        "Indien nodig: camera-inspectie voor diagnose",
+        "Controle en advies om herhaling te vermijden"
+      ],
+      "pricing_intro": "Wij werken met vaste en transparante prijzen, ook ’s avonds en in het weekend:",
+      "pricing_items": [
+        "Interventie ontstopping: €160",
+        "Camera-inspectie: €90",
+        "Totaalpakket (ontstopping + camera): €250"
+      ],
+      "urgency": "Hoe sneller je ingrijpt, hoe kleiner de kans op bijkomende schade zoals geurhinder, overstroming of lekkages. Een korte interventie voorkomt vaak duurdere herstellingen.",
+      "cta_title": "Hulp nodig bij een verstopping?",
+      "cta_text": "Beschrijf kort het probleem en voeg indien mogelijk een foto toe. Wij koppelen snel terug met een concreet tijdsblok in {REGIO}.",
+      "cta_btn": "Vraag ontstopping aan →"
+    },
+
+    "camera-inspectie": {
+      "title": "Camera-inspectie",
+      "description": "Camera-inspectie van afvoer en riolering met professionele apparatuur. Ideaal om scheuren, verzakkingen of verstoppingen in detail te lokaliseren.",
+      "hero": "Camera-inspectie",
+      "intro": "Nood aan een professionele camera-inspectie in {REGIO}? Wij brengen exact in beeld waar het probleem zit, zonder hak- of breekwerk.",
+      "bullets": [
+        "Inspectie van hoofdriolering en binnenleidingen",
+        "Detectie van scheuren, verzakkingen en wortelgroei",
+        "Opmeting van leidingverloop",
+        "Digitale rapportage mogelijk",
+        "Snelle diagnose zonder hak- of breekwerk"
+      ],
+      "workflow": [
+        "Vooranalyse van het probleem",
+        "Toegang creëren tot de betrokken leiding",
+        "Camera-inspectie met hoge resolutie",
+        "Analyse van beelden en vaststellen van oorzaak",
+        "Advies voor oplossing of herstelling"
+      ],
+      "pricing_intro": "Camera-inspectie is aanvullend op ontstopping of afzonderlijk mogelijk:",
+      "pricing_items": [
+        "Camera-inspectie: €90",
+        "Combinatie met ontstopping: €250 totaalpakket"
+      ],
+      "urgency": "Camera-inspectie is aangewezen bij terugkerende problemen, geurhinder, verzakkingen of onverklaarbare verstoppingen.",
+      "cta_title": "Camera-inspectie aanvragen?",
+      "cta_text": "Wij brengen uw riolering in {REGIO} exact in beeld en geven een duidelijk advies voor de juiste oplossing.",
+      "cta_btn": "Vraag inspectie aan →"
+    },
+
+    "rioolherstelling": {
+      "title": "Noodherstellingen",
+      "description": "Herstellingen van riolering en afvoer, inclusief lekkages, verzakkingen en kapotte leidingen. Snelle interventie bij dringende problemen.",
+      "hero": "Noodherstellingen",
+      "intro": "Lekkage, verzakking of defecte riolering in {REGIO}? Turbo Services voert snelle en professionele rioolherstellingen uit.",
+      "bullets": [
+        "Herstelling van gebroken of verzakte rioleringen",
+        "Vervanging van afvoerbuizen binnen en buiten",
+        "Herstelling van scheuren en lekkages",
+        "Lokalisatie van leidingen en problemen",
+        "Snelle noodinterventies"
+      ],
+      "workflow": [
+        "Lokalisatie van het probleem (camera of rooktest)",
+        "Vrijleggen van de leiding indien nodig",
+        "Herstelling of vervanging van het beschadigde stuk",
+        "Controle van doorstroming",
+        "Advies voor preventie"
+      ],
+      "pricing_intro": "Prijzen variëren per type herstelling. Diagnostiek gebeurt vooraf:",
+      "pricing_items": [
+        "Totaalpakket diagnose (camera of rooktest): €160–€250",
+        "Herstellingen op maat (steeds offerte vooraf)",
+        "Noodinterventies mogelijk buiten kantooruren"
+      ],
+      "urgency": "Lekkages en verzakkingen kunnen snel grotere schade veroorzaken. Vroegtijdige herstelling voorkomt vochtproblemen en structurele schade.",
+      "cta_title": "Dringende herstelling nodig?",
+      "cta_text": "Neem contact op voor een snelle diagnose en herstelling in {REGIO}.",
+      "cta_btn": "Vraag herstelling aan →"
+    },
+
+    "rookdetectie": {
+      "title": "Rook- en geurdetectie",
+      "description": "Rookdetectie en geuronderzoek om lekken, scheuren of foutieve aansluitingen in de riolering vast te stellen.",
+      "hero": "Rookdetectie",
+      "intro": "Last van rioolgeur in {REGIO}? Via rook- en geurdetectie sporen wij exact op waar de oorzaak zich bevindt.",
+      "bullets": [
+        "Detectie van geurproblemen",
+        "Opsporen van foutieve aansluitingen",
+        "Rooktest van volledige rioleringsstelsels",
+        "Snelle diagnose zonder breekwerk",
+        "Ideaal voor terugkerende geurhinder"
+      ],
+      "workflow": [
+        "Vooranalyse op locatie",
+        "Afsluiten en opdrukken van het systeem",
+        "Rookinjectie in het stelsel",
+        "Opsporen van lekken of foutieve aansluitingen",
+        "Advies voor herstelling"
+      ],
+      "pricing_intro": "Rookdetectie is vaak de snelste manier om geurproblemen te lokaliseren:",
+      "pricing_items": [
+        "Rookdetectie basis: €160",
+        "Combinatie met camera-inspectie mogelijk",
+        "Herstellingen offerte na diagnose"
+      ],
+      "urgency": "Geurhinder wijst bijna altijd op lekkage of foutieve aansluiting. Rookdetectie maakt het probleem zichtbaar zonder breekwerk.",
+      "cta_title": "Geur- of rookdetectie nodig?",
+      "cta_text": "Wij sporen geurproblemen in {REGIO} snel en zonder breekwerk op.",
+      "cta_btn": "Vraag rooktest aan →"
+    }
+  }
+}

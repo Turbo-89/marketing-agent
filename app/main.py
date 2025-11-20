@@ -1,12 +1,25 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.router import router as agent_router
 
-app = FastAPI(title="Turbo Marketing Agent")
+app = FastAPI(
+    title="Marketing Agent",
+    version="1.0.0"
+)
 
-app.include_router(agent_router, prefix="/agent", tags=["agent"])
+# CORS – veilig default
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+# >>> BELANGRIJK <<<  
+# registreer agent router
+app.include_router(agent_router)
 
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+@app.get("/")
+def root():
+    return {"status": "ok", "message": "agent online"}

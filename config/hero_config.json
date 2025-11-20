@@ -1,0 +1,11 @@
+{
+  "hero_generation_enabled": true,
+  "style": "flat-2d-vector",
+  "rules": {
+    "no_text": true,
+    "no_labels": true,
+    "no_typography": true,
+    "logo_position": "center-foreground",
+    "background": "flat-region-silhouette"
+  }
+}

@@ -1,124 +1,119 @@
 import base64
+import requests
 import os
-from typing import Optional, Dict, Any
-
-import httpx
-from dotenv import load_dotenv
-
-load_dotenv()
-
-
-class GitHubClientNotConfigured(Exception):
-    pass
 
 
 class GitHubClient:
-    def __init__(self, token: str, owner: str, repo: str):
-        self.base_url = "https://api.github.com"
-        self.token = token
+    """
+    Volwaardige GitHub Client voor het werken met:
+    - GET bestand
+    - PUT update
+    - POST create (voor nieuwe paths)
+    - Binaire uploads
+    """
+
+    def __init__(self, owner: str, repo: str, token: str = None):
         self.owner = owner
         self.repo = repo
+        self.token = token or os.getenv("GITHUB_TOKEN")
 
-    def _headers(self) -> Dict[str, str]:
-        return {
+        if not self.token:
+            raise Exception("GITHUB_TOKEN ontbreekt in omgeving variabelen.")
+
+        self.base_url = f"https://api.github.com/repos/{owner}/{repo}"
+        self.headers = {
             "Authorization": f"Bearer {self.token}",
             "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
         }
 
-    def get_file(self, path: str, ref: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """
-        Haalt een bestand op uit de repo.
-        Als ref (branch/commit/sha) is opgegeven, wordt die gebruikt.
-        Retourneert None bij 404.
-        """
-        url = f"{self.base_url}/repos/{self.owner}/{self.repo}/contents/{path}"
-        params: Dict[str, Any] = {}
-        if ref:
-            params["ref"] = ref
+    # -------------------------------------------------
+    # GENERIC GET FILE
+    # -------------------------------------------------
+    def get_file(self, path, branch="main"):
+        url = f"{self.base_url}/contents/{path}?ref={branch}"
+        resp = requests.get(url, headers=self.headers)
 
-        resp = httpx.get(url, headers=self._headers(), params=params or None)
         if resp.status_code == 200:
             return resp.json()
-        if resp.status_code == 404:
-            return None
+
         raise Exception(f"GitHub GET error {resp.status_code}: {resp.text}")
 
-    def file_exists(self, path: str, branch: str) -> bool:
+    # -------------------------------------------------
+    # PUT + POST fallback (critical)
+    # -------------------------------------------------
+    def _put_content(self, path, encoded_content, message, branch, sha=None):
         """
-        Controleert of een bestand bestaat op een bepaalde branch.
-        Retourneert True bij 200, False bij 404, andere codes -> exception.
+        PUT → update (werkt alleen als path reeds bestaat)
+        POST → nieuwe file + directories automatisch aanmaken
         """
-        url = f"{self.base_url}/repos/{self.owner}/{self.repo}/contents/{path}"
-        resp = httpx.get(url, headers=self._headers(), params={"ref": branch})
-        if resp.status_code == 200:
-            return True
+
+        url = f"{self.base_url}/contents/{path}"
+
+        payload = {
+            "message": message,
+            "content": encoded_content,
+            "branch": branch,
+        }
+
+        if sha:
+            payload["sha"] = sha
+
+        # TRY PUT FIRST
+        resp = requests.put(url, headers=self.headers, json=payload)
+
+        # UPDATE SUCCEEDED
+        if resp.status_code in (200, 201):
+            return resp.json()
+
+        # PUT FAILS → TRY POST
         if resp.status_code == 404:
-            return False
-        raise Exception(f"GitHub EXISTS error {resp.status_code}: {resp.text}")
+            create_payload = {
+                "message": message,
+                "content": encoded_content,
+                "branch": branch,
+            }
+            post_resp = requests.post(url, headers=self.headers, json=create_payload)
 
-    def upsert_file(
-        self,
-        path: str,
-        content_str: str,
-        message: str,
-        branch: str,
-    ) -> Dict[str, Any]:
-        """
-        Maakt of update een tekstbestand (TSX, TS, MD, …) in de repo via de GitHub Contents API.
-        """
-        url = f"{self.base_url}/repos/{self.owner}/{self.repo}/contents/{path}"
+            if post_resp.status_code in (200, 201):
+                return post_resp.json()
 
-        existing = self.get_file(path, ref=branch)
-        encoded = base64.b64encode(content_str.encode("utf-8")).decode("ascii")
+            raise Exception(f"GitHub POST error {post_resp.status_code}: {post_resp.text}")
 
-        payload: Dict[str, Any] = {
-            "message": message,
-            "content": encoded,
-            "branch": branch,
-        }
-        if existing and "sha" in existing:
-            payload["sha"] = existing["sha"]
+        raise Exception(f"GitHub PUT error {resp.status_code}: {resp.text}")
 
-        resp = httpx.put(url, headers=self._headers(), json=payload)
-        if resp.status_code not in (200, 201):
-            raise Exception(f"GitHub PUT error {resp.status_code}: {resp.text}")
-        return resp.json()
+    # -------------------------------------------------
+    # TEXT FILE UPSERT
+    # -------------------------------------------------
+    def upsert_file(self, path, content_str, message, branch="main"):
+        encoded = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
 
-    def upsert_binary_file(
-        self,
-        path: str,
-        content_bytes: bytes,
-        message: str,
-        branch: str,
-    ) -> Dict[str, Any]:
-        """
-        Maakt of update een binair bestand (PNG, JPG, PDF, …) in de repo via de GitHub Contents API.
-        """
-        url = f"{self.base_url}/repos/{self.owner}/{self.repo}/contents/{path}"
+        sha = None
+        try:
+            file_info = self.get_file(path, branch)
+            sha = file_info.get("sha")
+        except Exception:
+            pass  # file does not exist
 
-        existing = self.get_file(path, ref=branch)
-        encoded = base64.b64encode(content_bytes).decode("ascii")
+        return self._put_content(path, encoded, message, branch, sha)
 
-        payload: Dict[str, Any] = {
-            "message": message,
-            "content": encoded,
-            "branch": branch,
-        }
-        if existing and "sha" in existing:
-            payload["sha"] = existing["sha"]
+    # -------------------------------------------------
+    # BINARY FILE UPSERT
+    # -------------------------------------------------
+    def upsert_binary_file(self, path, content_bytes, message, branch="main"):
+        encoded = base64.b64encode(content_bytes).decode("utf-8")
 
-        resp = httpx.put(url, headers=self._headers(), json=payload)
-        if resp.status_code not in (200, 201):
-            raise Exception(f"GitHub PUT (binary) error {resp.status_code}: {resp.text}")
-        return resp.json()
+        sha = None
+        try:
+            file_info = self.get_file(path, branch)
+            sha = file_info.get("sha")
+        except Exception:
+            pass
+
+        return self._put_content(path, encoded, message, branch, sha)
 
 
-def get_github_client_from_env(owner: str, repo: str) -> GitHubClient:
-    token = os.getenv("GITHUB_TOKEN")
-    if not token:
-        raise GitHubClientNotConfigured(
-            "GITHUB_TOKEN ontbreekt. Zet deze in .env met een PAT dat 'repo'-rechten heeft."
-        )
-    return GitHubClient(token=token, owner=owner, repo=repo)
-
+# -------------------------------------------------
+# FACTORY
+# -------------------------------------------------
+def get_github_client_from_env(owner, repo):
+    return GitHubClient(owner=owner, repo=repo)

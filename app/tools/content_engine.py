@@ -1,14 +1,14 @@
 import json
-from datetime import datetime
 
 class ContentEngine:
     def __init__(self):
         with open("config/services.json", encoding="utf-8") as f:
             self.services = json.load(f)["services"]
+
         with open("config/regions.json", encoding="utf-8") as f:
             self.regions = json.load(f)["regions"]
 
-    def generate_content(self, service: str, region: str):
+    def generate(self, service, region):
         if service not in self.services:
             raise KeyError(f"Dienst onbekend: {service}")
 
@@ -19,13 +19,13 @@ class ContentEngine:
             raise KeyError(f"Regio onbekend: {region}")
 
         return {
+            "title": f"{s['title']} in {r['name']}",
+            "description": s["description"],
             "service": service,
             "region": region,
-            "metadata_title": f"{s['title']} in {r['name']}",
-            "metadata_description": s["description"],
             "image": f"/hero/{service}/{region}.webp",
             "sections": [
                 {"title": s["title"], "body": s["intro"]},
-                {"title": "Wat we doen", "items": s["bullets"]},
+                {"title": "Wat we doen", "items": s["bullets"]}
             ]
         }

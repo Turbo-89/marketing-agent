@@ -1,10 +1,10 @@
-from app.seo.seo_keywords import KeywordEngine
+from app.seo.seo_keywords import SEOKeywords
 from app.seo.seo_metadata import MetadataEngine
 from app.seo.seo_analyzer import SEOAnalyzer
 
 class SEOManager:
     def __init__(self):
-        self.k = KeywordEngine()
+        self.k = SEOKeywords()
         self.m = MetadataEngine()
         self.a = SEOAnalyzer()
 

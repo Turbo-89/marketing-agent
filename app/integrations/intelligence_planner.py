@@ -1,3 +1,4 @@
+import os
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -80,12 +81,40 @@ def _clean_string(value: Any) -> str:
     return value.strip() if isinstance(value, str) else ""
 
 
+def _clamped_positive_int(value: Any, default: int, hard_cap: int) -> int:
+    if not isinstance(value, int) or value <= 0:
+        return default
+    return min(value, hard_cap)
+
+
 def _add_query(queries: list[dict], seen: set[str], query: str, purpose: str, category: str) -> None:
     key = query.lower()
     if key in seen:
         return
     seen.add(key)
     queries.append({"query": query, "purpose": purpose, "category": category})
+
+
+def is_online_intelligence_runner_enabled() -> bool:
+    value = os.getenv("ENABLE_ONLINE_INTELLIGENCE_RUNNER", "")
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+class OnlineSearchProvider:
+    name = "provider_not_configured"
+
+    def search(self, query: str, max_results: int) -> dict:
+        return {
+            "ok": False,
+            "error": "provider_not_configured",
+            "provider": self.name,
+            "query": query,
+            "results": [],
+        }
+
+
+def get_online_search_provider() -> OnlineSearchProvider:
+    return OnlineSearchProvider()
 
 
 def build_research_plan(topic: str, focus: str = "", service: str = "") -> dict:
@@ -150,6 +179,61 @@ def build_research_plan(topic: str, focus: str = "", service: str = "") -> dict:
     }
 
 
+def run_research_plan(
+    research_plan: dict,
+    max_queries: int = 3,
+    max_results_per_query: int = 5,
+) -> dict:
+    max_queries = _clamped_positive_int(max_queries, 3, 8)
+    max_results_per_query = _clamped_positive_int(max_results_per_query, 5, 10)
+    provider = get_online_search_provider()
+    provider_configured = provider.name != "provider_not_configured"
+    executed_queries = []
+    notes = []
+    result_count = 0
+
+    if not provider_configured:
+        notes.append("provider_not_configured")
+
+    for item in research_plan.get("research_queries", [])[:max_queries]:
+        provider_result = provider.search(item["query"], max_results_per_query)
+        results = []
+        for result in provider_result.get("results", [])[:max_results_per_query]:
+            results.append(
+                {
+                    "title": _clean_string(result.get("title")),
+                    "url": _clean_string(result.get("url")),
+                    "snippet": _clean_string(result.get("snippet")),
+                    "source": _clean_string(result.get("source") or provider.name),
+                }
+            )
+
+        result_count += len(results)
+        if provider_result.get("error"):
+            notes.append(provider_result["error"])
+
+        executed_queries.append(
+            {
+                "query": item["query"],
+                "category": item["category"],
+                "purpose": item["purpose"],
+                "results": results,
+            }
+        )
+
+    return {
+        "ok": provider_configured,
+        "topic": research_plan["topic"],
+        "research_plan": research_plan,
+        "executed_queries": executed_queries,
+        "summary": {
+            "result_count": result_count,
+            "provider": provider.name,
+            "notes": list(dict.fromkeys(notes)),
+        },
+    }
+
+
 @router.post("/research-plan")
 async def research_plan(request: Request):
     payload = await request.json()
@@ -161,4 +245,31 @@ async def research_plan(request: Request):
         topic=topic,
         focus=_clean_string(payload.get("focus")),
         service=_clean_string(payload.get("service")),
+    )
+
+
+@router.post("/run-research")
+async def run_research(request: Request):
+    payload = await request.json()
+    topic = _clean_string(payload.get("topic"))
+    if not topic:
+        raise HTTPException(status_code=400, detail="topic is required")
+
+    plan = build_research_plan(
+        topic=topic,
+        focus=_clean_string(payload.get("focus")),
+        service=_clean_string(payload.get("service")),
+    )
+
+    if not is_online_intelligence_runner_enabled():
+        return {
+            "ok": False,
+            "error": "online_intelligence_runner_disabled",
+            "research_plan": plan,
+        }
+
+    return run_research_plan(
+        research_plan=plan,
+        max_queries=payload.get("max_queries", 3),
+        max_results_per_query=payload.get("max_results_per_query", 5),
     )

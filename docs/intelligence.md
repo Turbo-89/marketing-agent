@@ -7,6 +7,7 @@ The intelligence research planner prepares read-only dry-run plans for AI, SEO, 
 ## Endpoint
 
 - `POST /api/intelligence/research-plan`
+- `POST /api/intelligence/run-research`
 
 Request:
 
@@ -19,6 +20,10 @@ Request:
 ```
 
 Response includes the topic, focus, optional `service_intent`, research queries, source categories, Turbo Services impact questions, and a suggested weekly cadence.
+
+`/api/intelligence/run-research` is disabled by default with `ENABLE_ONLINE_INTELLIGENCE_RUNNER`. Enabled values are `1`, `true`, `yes`, and `on`. When disabled, it returns the research plan and does not call an online provider.
+
+When enabled, the runner executes only capped research queries and returns compact result metadata: title, URL, snippet, and source. If no safe provider is configured, it returns `provider_not_configured` without crashing. The current implementation does not add paid dependencies, hardcode API keys, scrape full pages, write files, schedule tasks, call OpenAI, deploy, or touch GitHub.
 
 ## Service Intent
 

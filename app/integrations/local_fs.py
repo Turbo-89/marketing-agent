@@ -1,4 +1,5 @@
 import os
+import hashlib
 from pathlib import Path
 from typing import Dict
 
@@ -45,8 +46,10 @@ FORBIDDEN_PARTS = {
     ".next",
     "node_modules",
     ".venv",
+    ".venv312",
     "venv",
     "__pycache__",
+    "uploaded",
 }
 
 
@@ -138,6 +141,100 @@ def _safe_entry(path: Path, root: Path) -> dict | None:
     }
 
 
+def _clamped_positive_int(value: int, default: int, hard_cap: int) -> int:
+    if value <= 0:
+        return default
+    return min(value, hard_cap)
+
+
+def _safe_search_roots(root_alias: str | None) -> Dict[str, Path]:
+    roots = get_allowed_roots()
+
+    if root_alias:
+        root = roots.get(root_alias)
+        if root is None:
+            raise HTTPException(status_code=404, detail="Unknown filesystem root")
+        return {root_alias: root}
+
+    return roots
+
+
+def _safe_walk(root: Path):
+    for current, dirs, files in os.walk(root):
+        current_path = Path(current).resolve()
+        try:
+            _assert_not_forbidden(current_path, root)
+        except HTTPException:
+            dirs[:] = []
+            continue
+
+        safe_dirs = []
+        for dirname in dirs:
+            try:
+                _assert_not_forbidden((current_path / dirname).resolve(), root)
+                safe_dirs.append(dirname)
+            except HTTPException:
+                continue
+        dirs[:] = safe_dirs
+
+        yield current_path, files
+
+
+def _short_line(line: str) -> str:
+    stripped = line.strip()
+    return stripped[:300]
+
+
+def _file_search_result(
+    root_alias: str,
+    root: Path,
+    path: Path,
+    query_l: str,
+    max_file_size: int,
+) -> dict | None:
+    try:
+        resolved = path.resolve()
+        _assert_not_forbidden(resolved, root)
+
+        if not resolved.is_file() or not is_text_file(resolved):
+            return None
+
+        size = resolved.stat().st_size
+        if size > max_file_size:
+            return None
+
+        rel_path = _relative_path(resolved, root)
+        path_matches = query_l in rel_path.lower()
+
+        try:
+            content = resolved.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            return None
+
+        matched_lines = []
+        for line_no, line in enumerate(content.splitlines(), start=1):
+            if query_l in line.lower():
+                matched_lines.append({"line": line_no, "text": _short_line(line)})
+                if len(matched_lines) >= 5:
+                    break
+
+        if not path_matches and not matched_lines:
+            return None
+
+        sha256 = hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+        return {
+            "root": root_alias,
+            "path": rel_path,
+            "match_type": "content" if matched_lines else "path",
+            "sha256": sha256,
+            "size": size,
+            "matched_lines": matched_lines,
+        }
+    except Exception:
+        return None
+
+
 @router.get("/roots")
 def roots():
     return {
@@ -193,3 +290,37 @@ def read_file(root: str, path: str):
         "path": _relative_path(full, base),
         "content": content,
     }
+
+
+@router.get("/search")
+def search_files(
+    q: str,
+    root: str | None = None,
+    max_results: int = 50,
+    max_file_size: int = 300000,
+):
+    query = q.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Search query is required")
+
+    max_results = _clamped_positive_int(max_results, 50, 200)
+    max_file_size = _clamped_positive_int(max_file_size, 300000, 1000000)
+    query_l = query.lower()
+    results = []
+
+    for root_alias, root_path in _safe_search_roots(root).items():
+        for current_path, files in _safe_walk(root_path):
+            for filename in files:
+                result = _file_search_result(
+                    root_alias=root_alias,
+                    root=root_path,
+                    path=current_path / filename,
+                    query_l=query_l,
+                    max_file_size=max_file_size,
+                )
+                if result is not None:
+                    results.append(result)
+                    if len(results) >= max_results:
+                        return {"ok": True, "query": query, "results": results}
+
+    return {"ok": True, "query": query, "results": results}

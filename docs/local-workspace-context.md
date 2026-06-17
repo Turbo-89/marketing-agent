@@ -26,6 +26,9 @@ Each root is exposed to the frontend by alias only. The frontend must use aliase
 - `GET /api/fs/read?root=<alias>&path=<relative-path>`
   Reads an allowed text-like file under a scoped root.
 
+- `GET /api/fs/search?q=<query>&root=<optional-alias>&max_results=<n>&max_file_size=<bytes>`
+  Searches allowed text-like file paths and compact text matches under configured scoped roots. Results contain relative paths, SHA-256, size, match type, and up to 5 short matched lines per file.
+
 Chat requests may include optional metadata:
 
 ```json
@@ -78,8 +81,9 @@ Invalid, missing, zero, or negative preview-limit values fall back to defaults.
 - Traversal outside the scoped root is rejected.
 - Responses do not return absolute filesystem paths.
 - Secret and token files are blocked.
-- Blocked path parts include `.git`, `.next`, `node_modules`, `.venv`, `venv`, and `__pycache__`.
+- Blocked path parts include `.git`, `.next`, `node_modules`, `.venv`, `.venv312`, `venv`, `__pycache__`, and `uploaded`.
 - Only text-like file extensions are readable: `.md`, `.txt`, `.json`, `.yaml`, `.yml`, `.ts`, `.tsx`, `.js`, `.jsx`, `.py`, `.css`, `.html`, `.sql`, `.sh`, `.ps1`, and `.env.example`.
+- Search returns compact matches only and never returns full file content.
 - Open-file metadata is logged as metadata only.
 - Selected-files metadata is logged as metadata only and is limited to 10 valid entries.
 - Selected files are safely resolved, read, hashed, and previewed server-side. Their previews are injected only when `ENABLE_SELECTED_FILES_CONTEXT` is enabled.
@@ -106,6 +110,12 @@ Optional import check:
 
 ```powershell
 .\.venv312\Scripts\python.exe -c "from server import app; print('backend import ok')"
+```
+
+Optional search checks:
+
+```powershell
+.\.venv312\Scripts\python.exe -c "from fastapi.testclient import TestClient; from server import app; c=TestClient(app); print(c.get('/api/fs/search', params={'q':'RouterEngine','root':'marketing_agent'}).json())"
 ```
 
 Expected log shape when an open file is provided:

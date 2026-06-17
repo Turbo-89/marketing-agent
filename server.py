@@ -93,6 +93,34 @@ def log_workspace_context(payload: dict) -> None:
     print(f"workspace context open_file root={root} path={path}{suffix}")
 
 
+def log_workspace_selected_files(payload: dict) -> None:
+    selected_files = (payload.get("context") or {}).get("selected_files")
+    if not isinstance(selected_files, list):
+        return
+
+    valid_files = [
+        item
+        for item in selected_files
+        if isinstance(item, dict) and item.get("root") and item.get("path")
+    ]
+    logged_files = valid_files[:10]
+
+    print(f"workspace selected_files count={len(logged_files)}")
+
+    for item in logged_files:
+        suffix = f" sha256={item.get('sha256')}" if item.get("sha256") else ""
+        print(
+            "workspace selected_file "
+            f"root={item.get('root')} path={item.get('path')}{suffix}"
+        )
+
+    if len(valid_files) > 10:
+        print(
+            "workspace selected_files truncated "
+            f"received={len(valid_files)} logged=10"
+        )
+
+
 def build_open_file_preview(
     content: str,
     max_lines: int = 20,
@@ -229,6 +257,7 @@ async def chat_stream_alias(req: Request):
         )
 
     log_workspace_context(payload)
+    log_workspace_selected_files(payload)
     preview = load_workspace_open_file(payload)
     open_file_context_enabled = is_open_file_context_enabled()
     print(

@@ -35,7 +35,14 @@ Chat requests may include optional metadata:
       "root": "marketing_agent",
       "path": "server.py",
       "sha256": "<optional sha256>"
-    }
+    },
+    "selected_files": [
+      {
+        "root": "turbo_ui",
+        "path": "app/chat/page.tsx",
+        "sha256": "<optional sha256>"
+      }
+    ]
   }
 }
 ```
@@ -67,6 +74,7 @@ Invalid, missing, zero, or negative preview-limit values fall back to defaults.
 - Blocked path parts include `.git`, `.next`, `node_modules`, `.venv`, `venv`, and `__pycache__`.
 - Only text-like file extensions are readable: `.md`, `.txt`, `.json`, `.yaml`, `.yml`, `.ts`, `.tsx`, `.js`, `.jsx`, `.py`, `.css`, `.html`, `.sql`, `.sh`, `.ps1`, and `.env.example`.
 - Open-file metadata is logged as metadata only.
+- Selected-files metadata is logged as metadata only and is limited to 10 valid entries.
 - The backend verifies the file exists, is a file, and is text-like before reading.
 - SHA-256 mismatches are warnings only and do not fail chat.
 - Full file content is not returned to chat callers or logged.

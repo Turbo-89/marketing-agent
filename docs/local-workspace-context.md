@@ -56,6 +56,13 @@ Chat requests may include optional metadata:
 
   When enabled, the backend appends a clearly delimited workspace-context block to the user message before calling `RouterEngine`. The block uses only the limited preview, not the full file.
 
+- `ENABLE_SELECTED_FILES_CONTEXT`
+  Disabled by default. Enabled values are `1`, `true`, `yes`, or `on` case-insensitive.
+
+  When disabled, selected files are logged and previewed but do not change the message sent to `RouterEngine`.
+
+  When enabled, the backend appends a clearly delimited selected-workspace-context block to the user message before calling `RouterEngine`. The block uses only limited previews, not full files, and is capped at 10 selected files.
+
 - `OPEN_FILE_CONTEXT_MAX_LINES`
   Default: `20`. Must be a positive integer. Hard cap: `300`.
 
@@ -75,7 +82,7 @@ Invalid, missing, zero, or negative preview-limit values fall back to defaults.
 - Only text-like file extensions are readable: `.md`, `.txt`, `.json`, `.yaml`, `.yml`, `.ts`, `.tsx`, `.js`, `.jsx`, `.py`, `.css`, `.html`, `.sql`, `.sh`, `.ps1`, and `.env.example`.
 - Open-file metadata is logged as metadata only.
 - Selected-files metadata is logged as metadata only and is limited to 10 valid entries.
-- Selected files are safely resolved, read, hashed, and previewed server-side, but their previews are not injected into prompts yet.
+- Selected files are safely resolved, read, hashed, and previewed server-side. Their previews are injected only when `ENABLE_SELECTED_FILES_CONTEXT` is enabled.
 - The backend verifies the file exists, is a file, and is text-like before reading.
 - SHA-256 mismatches are warnings only and do not fail chat.
 - Full file content is not returned to chat callers or logged.

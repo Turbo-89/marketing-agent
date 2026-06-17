@@ -13,7 +13,17 @@ from app.api.diff_api import router as diff_router
 from app.api.bulk_api import router as bulk_router
 from app.api.knowledge_api import router as knowledge_router
 from app.integrations.local_fs import router as local_fs_router
-from app.integrations.context_builder import router as context_builder_router
+from app.integrations.context_builder import (
+    build_context_plan,
+    is_auto_context_discovery_enabled,
+    log_auto_context_plan,
+    router as context_builder_router,
+)
+from app.integrations.service_intent import (
+    build_message_with_service_intent_context,
+    is_service_intent_context_enabled,
+    resolve_service_intent,
+)
 from app.memory.memory_engine import MemoryEngine
 from app.router.engine import RouterEngine
 from app.api.knowledge_preview_api import router as knowledge_preview_router
@@ -98,6 +108,12 @@ async def chat_stream_alias(req: Request):
     log_workspace_selected_files(payload)
     preview = load_workspace_open_file(payload)
     selected_previews = load_workspace_selected_files(payload)
+    service_intent = resolve_service_intent(message)
+    if is_auto_context_discovery_enabled():
+        auto_context_plan = build_context_plan(message)
+        service_intent = auto_context_plan.get("service_intent") or service_intent
+        log_auto_context_plan(auto_context_plan)
+
     open_file_context_enabled = is_open_file_context_enabled()
     print(
         "workspace open_file context injection "
@@ -117,6 +133,16 @@ async def chat_stream_alias(req: Request):
     message_for_router = (
         build_message_with_selected_files_context(message_for_router, selected_previews)
         if selected_files_context_enabled
+        else message_for_router
+    )
+    service_intent_context_enabled = is_service_intent_context_enabled()
+    print(
+        "workspace service_intent context injection "
+        f"enabled={str(service_intent_context_enabled).lower()}"
+    )
+    message_for_router = (
+        build_message_with_service_intent_context(message_for_router, service_intent)
+        if service_intent_context_enabled
         else message_for_router
     )
 

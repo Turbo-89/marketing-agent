@@ -30,7 +30,7 @@ Each root is exposed to the frontend by alias only. The frontend must use aliase
   Searches allowed text-like file paths and compact text matches under configured scoped roots. Results contain relative paths, SHA-256, size, match type, and up to 5 short matched lines per file.
 
 - `POST /api/context/build`
-  Builds a read-only dry-run context plan from a task. It extracts simple search queries, searches configured scoped roots, deduplicates by root and relative path, and returns compact file metadata plus matched lines. It does not return full file content, call OpenAI, call GitHub, write files, index persistently, or inject anything into chat prompts.
+  Builds a read-only dry-run context plan from a task. It extracts simple search queries, filters generic Dutch/English stopwords, resolves Turbo Services service intent when detected, expands service and landing-page terms, searches configured scoped roots, deduplicates by root and relative path, ranks likely service/website files first, and returns compact file metadata plus matched lines. It does not return full file content, call OpenAI, call GitHub, write files, index persistently, or inject anything into chat prompts.
 
 Chat requests may include optional metadata:
 
@@ -68,6 +68,16 @@ Chat requests may include optional metadata:
   When disabled, selected files are logged and previewed but do not change the message sent to `RouterEngine`.
 
   When enabled, the backend appends a clearly delimited selected-workspace-context block to the user message before calling `RouterEngine`. The block uses only limited previews, not full files, and is capped at 10 selected files.
+
+- `ENABLE_AUTO_CONTEXT_DISCOVERY`
+  Disabled by default. Enabled values are `1`, `true`, `yes`, or `on` case-insensitive.
+
+  When enabled, `/chat-stream` builds a dry-run local context plan from the incoming user message and logs only the query/file summary. It does not inject the plan into prompts or pass it to `RouterEngine`.
+
+- `ENABLE_SERVICE_INTENT_CONTEXT`
+  Disabled by default. Enabled values are `1`, `true`, `yes`, or `on` case-insensitive.
+
+  When enabled, `/chat-stream` appends a clearly delimited business-context block for detected Turbo Services service intent before calling `RouterEngine`. This block is separate from auto context discovery and does not include file previews.
 
 - `OPEN_FILE_CONTEXT_MAX_LINES`
   Default: `20`. Must be a positive integer. Hard cap: `300`.

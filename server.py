@@ -13,6 +13,7 @@ from app.api.diff_api import router as diff_router
 from app.api.bulk_api import router as bulk_router
 from app.api.knowledge_api import router as knowledge_router
 from app.integrations.local_fs import router as local_fs_router
+from app.integrations.context_builder import router as context_builder_router
 from app.memory.memory_engine import MemoryEngine
 from app.router.engine import RouterEngine
 from app.api.knowledge_preview_api import router as knowledge_preview_router
@@ -43,6 +44,7 @@ router_engine = RouterEngine(memory_engine)
 app.state.router_engine = router_engine
 
 app.include_router(local_fs_router, prefix="/api/fs")
+app.include_router(context_builder_router, prefix="/api/context")
 app.include_router(stage_router, prefix="/api")
 app.include_router(auth_router)
 app.include_router(chat_router)

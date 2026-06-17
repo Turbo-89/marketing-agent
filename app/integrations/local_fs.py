@@ -235,6 +235,39 @@ def _file_search_result(
         return None
 
 
+def search_workspace_files(
+    query: str,
+    root_alias: str | None = None,
+    max_results: int = 50,
+    max_file_size: int = 300000,
+) -> list[dict]:
+    query = query.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Search query is required")
+
+    max_results = _clamped_positive_int(max_results, 50, 200)
+    max_file_size = _clamped_positive_int(max_file_size, 300000, 1000000)
+    query_l = query.lower()
+    results = []
+
+    for current_root_alias, root_path in _safe_search_roots(root_alias).items():
+        for current_path, files in _safe_walk(root_path):
+            for filename in files:
+                result = _file_search_result(
+                    root_alias=current_root_alias,
+                    root=root_path,
+                    path=current_path / filename,
+                    query_l=query_l,
+                    max_file_size=max_file_size,
+                )
+                if result is not None:
+                    results.append(result)
+                    if len(results) >= max_results:
+                        return results
+
+    return results
+
+
 @router.get("/roots")
 def roots():
     return {
@@ -300,27 +333,10 @@ def search_files(
     max_file_size: int = 300000,
 ):
     query = q.strip()
-    if not query:
-        raise HTTPException(status_code=400, detail="Search query is required")
-
-    max_results = _clamped_positive_int(max_results, 50, 200)
-    max_file_size = _clamped_positive_int(max_file_size, 300000, 1000000)
-    query_l = query.lower()
-    results = []
-
-    for root_alias, root_path in _safe_search_roots(root).items():
-        for current_path, files in _safe_walk(root_path):
-            for filename in files:
-                result = _file_search_result(
-                    root_alias=root_alias,
-                    root=root_path,
-                    path=current_path / filename,
-                    query_l=query_l,
-                    max_file_size=max_file_size,
-                )
-                if result is not None:
-                    results.append(result)
-                    if len(results) >= max_results:
-                        return {"ok": True, "query": query, "results": results}
-
+    results = search_workspace_files(
+        query=query,
+        root_alias=root,
+        max_results=max_results,
+        max_file_size=max_file_size,
+    )
     return {"ok": True, "query": query, "results": results}

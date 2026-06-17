@@ -29,6 +29,9 @@ Each root is exposed to the frontend by alias only. The frontend must use aliase
 - `GET /api/fs/search?q=<query>&root=<optional-alias>&max_results=<n>&max_file_size=<bytes>`
   Searches allowed text-like file paths and compact text matches under configured scoped roots. Results contain relative paths, SHA-256, size, match type, and up to 5 short matched lines per file.
 
+- `POST /api/context/build`
+  Builds a read-only dry-run context plan from a task. It extracts simple search queries, searches configured scoped roots, deduplicates by root and relative path, and returns compact file metadata plus matched lines. It does not return full file content, call OpenAI, call GitHub, write files, index persistently, or inject anything into chat prompts.
+
 Chat requests may include optional metadata:
 
 ```json
@@ -116,6 +119,12 @@ Optional search checks:
 
 ```powershell
 .\.venv312\Scripts\python.exe -c "from fastapi.testclient import TestClient; from server import app; c=TestClient(app); print(c.get('/api/fs/search', params={'q':'RouterEngine','root':'marketing_agent'}).json())"
+```
+
+Optional dry-run context builder check:
+
+```powershell
+.\.venv312\Scripts\python.exe -c "from fastapi.testclient import TestClient; from server import app; c=TestClient(app); print(c.post('/api/context/build', json={'task':'workspace tree chat context','roots':['turbo_ui'],'max_files':5}).json())"
 ```
 
 Expected log shape when an open file is provided:

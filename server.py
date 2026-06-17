@@ -121,6 +121,18 @@ def log_workspace_selected_files(payload: dict) -> None:
         )
 
 
+def get_workspace_selected_files(payload: dict) -> list[dict]:
+    selected_files = (payload.get("context") or {}).get("selected_files")
+    if not isinstance(selected_files, list):
+        return []
+
+    return [
+        item
+        for item in selected_files
+        if isinstance(item, dict) and item.get("root") and item.get("path")
+    ][:10]
+
+
 def build_open_file_preview(
     content: str,
     max_lines: int = 20,
@@ -243,6 +255,72 @@ def load_workspace_open_file(payload: dict) -> dict | None:
         return None
 
 
+def load_workspace_selected_files(payload: dict) -> list[dict]:
+    selected_files = get_workspace_selected_files(payload)
+    if not selected_files:
+        return []
+
+    previews = []
+    max_lines, max_chars = get_open_file_preview_limits()
+    print(f"workspace selected_files load start count={len(selected_files)}")
+
+    for item in selected_files:
+        root = item.get("root")
+        path = item.get("path")
+        expected_sha256 = item.get("sha256")
+
+        try:
+            resolved = resolve_scoped_path(root, path)
+
+            if not resolved.exists() or not resolved.is_file():
+                print(f"workspace selected_file skipped root={root} path={path} reason=file_not_found")
+                continue
+
+            if not is_text_file(resolved):
+                print(f"workspace selected_file skipped root={root} path={path} reason=not_text_file")
+                continue
+
+            content = resolved.read_text(encoding="utf-8")
+            computed_sha256 = hashlib.sha256(content.encode("utf-8")).hexdigest()
+            sha256_match = expected_sha256 == computed_sha256 if expected_sha256 else True
+
+            print(
+                "workspace selected_file loaded "
+                f"root={root} path={path} sha256={computed_sha256} "
+                f"chars={len(content)} sha256_match={str(sha256_match).lower()}"
+            )
+
+            if expected_sha256 and not sha256_match:
+                print(
+                    "workspace selected_file sha256 mismatch "
+                    f"root={root} path={path} expected={expected_sha256} "
+                    f"actual={computed_sha256}"
+                )
+
+            preview = {
+                "root": root,
+                "path": path,
+                "sha256": computed_sha256,
+                "chars": len(content),
+                **build_open_file_preview(
+                    content,
+                    max_lines=max_lines,
+                    max_chars=max_chars,
+                ),
+            }
+            print(
+                "workspace selected_file preview "
+                f"root={root} path={path} lines={preview['lines']} "
+                f"preview_chars={preview['preview_chars']}"
+            )
+            previews.append(preview)
+        except Exception as exc:
+            print(f"workspace selected_file skipped root={root} path={path} reason={exc}")
+
+    print(f"workspace selected_files loaded count={len(previews)}")
+    return previews
+
+
 @app.post("/chat-stream")
 async def chat_stream_alias(req: Request):
     payload = await req.json()
@@ -259,6 +337,7 @@ async def chat_stream_alias(req: Request):
     log_workspace_context(payload)
     log_workspace_selected_files(payload)
     preview = load_workspace_open_file(payload)
+    load_workspace_selected_files(payload)
     open_file_context_enabled = is_open_file_context_enabled()
     print(
         "workspace open_file context injection "

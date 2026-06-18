@@ -9,6 +9,8 @@ The intelligence research planner prepares read-only dry-run plans for AI, SEO, 
 - `POST /api/intelligence/research-plan`
 - `POST /api/intelligence/run-research`
 - `POST /api/intelligence/analyze-results`
+- `GET /api/intelligence/jobs`
+- `GET /api/intelligence/jobs/{job_id}`
 
 Request:
 
@@ -27,6 +29,8 @@ Response includes the topic, focus, optional `service_intent`, research queries,
 When enabled, the runner executes only capped research queries and returns compact result metadata: title, URL, snippet, and source. Configure the provider with `ONLINE_INTELLIGENCE_PROVIDER`; supported values are `none` and `brave`. Brave search requires `BRAVE_SEARCH_API_KEY`. If no safe provider or key is configured, it returns `provider_not_configured` or a missing-key note without crashing. The implementation does not add paid dependencies, hardcode API keys, scrape full pages, write files, schedule tasks, call OpenAI, deploy, or touch GitHub.
 
 `/api/intelligence/analyze-results` analyzes only compact run results already provided in the request. It treats titles, snippets, and URLs as signals rather than proven facts, returns possible Turbo Services impact areas, and proposes approval-required review actions. It does not fetch pages, call OpenAI, write files, schedule jobs, deploy, mutate strategy, or touch GitHub.
+
+`/api/intelligence/jobs` and `/api/intelligence/jobs/{job_id}` return static read-only definitions for future periodic intelligence jobs. They do not execute jobs, schedule background tasks, call online providers, write files, mutate strategy, deploy, or touch GitHub. All jobs are disabled by default and require approval before any proposed action.
 
 ## Service Intent
 

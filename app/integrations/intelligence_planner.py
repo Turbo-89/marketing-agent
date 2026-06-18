@@ -95,6 +95,112 @@ IMPACT_AREAS = {
     "service_pages": ("service page", "service pages", "local service", "landing page"),
     "internal_strategy": ("strategy", "update", "ai search", "seo update"),
 }
+
+JOB_PIPELINE = [
+    "research_plan",
+    "run_research",
+    "analyze_results",
+    "propose_actions",
+    "approval_required",
+]
+ALLOWED_JOB_ACTIONS = ["research", "analysis", "proposal"]
+FORBIDDEN_JOB_ACTIONS = [
+    "write_files",
+    "deploy",
+    "publish",
+    "change_ads",
+    "merge",
+    "push_to_live",
+]
+JOB_DEFINITIONS = [
+    {
+        "job_id": "weekly_ai_seo_watch",
+        "name": "Weekly AI SEO Watch",
+        "description": "Review AI search and SEO update signals for Turbo Services.",
+        "cadence": {
+            "frequency": "weekly",
+            "suggested_day": "Monday",
+            "reason": "AI search and SEO changes can affect service-page visibility quickly.",
+        },
+        "topic": "AI SEO updates voor Turbo Services",
+        "focus": "AI search, AI Overviews, Google SEO updates",
+    },
+    {
+        "job_id": "weekly_local_seo_watch",
+        "name": "Weekly Local SEO Watch",
+        "description": "Review local SEO and Google Business Profile signals.",
+        "cadence": {
+            "frequency": "weekly",
+            "suggested_day": "Tuesday",
+            "reason": "Local search and Google Business Profile changes can affect service-area leads.",
+        },
+        "topic": "local SEO updates voor Turbo Services",
+        "focus": "local SEO, Google Business Profile, Maps visibility",
+    },
+    {
+        "job_id": "weekly_structured_data_watch",
+        "name": "Weekly Structured Data Watch",
+        "description": "Review structured data guidance for service and local business pages.",
+        "cadence": {
+            "frequency": "weekly",
+            "suggested_day": "Wednesday",
+            "reason": "Schema guidance can affect how service pages are interpreted by search systems.",
+        },
+        "topic": "structured data updates voor Turbo Services",
+        "focus": "schema.org Service, LocalBusiness, structured data",
+    },
+    {
+        "job_id": "weekly_content_strategy_watch",
+        "name": "Weekly Content Strategy Watch",
+        "description": "Review content and conversion signals for local service landing pages.",
+        "cadence": {
+            "frequency": "weekly",
+            "suggested_day": "Thursday",
+            "reason": "Landing-page and content strategy signals can inform future proposals.",
+        },
+        "topic": "content strategy updates voor lokale service landingspagina's",
+        "focus": "content strategy, conversion-focused landing pages",
+    },
+    {
+        "job_id": "monthly_google_ads_watch",
+        "name": "Monthly Google Ads Watch",
+        "description": "Review Google Ads signals for local service keywords and negatives.",
+        "cadence": {
+            "frequency": "monthly",
+            "suggested_day": "First Monday",
+            "reason": "Ads changes are useful to review monthly before proposing campaign updates.",
+        },
+        "topic": "Google Ads updates voor Turbo Services",
+        "focus": "Google Ads changes, local services keywords, negative keywords",
+    },
+    {
+        "job_id": "monthly_turbo_services_services_watch",
+        "name": "Monthly Turbo Services Services Watch",
+        "description": "Review broader service-page and local SEO opportunities for Turbo Services.",
+        "cadence": {
+            "frequency": "monthly",
+            "suggested_day": "First Tuesday",
+            "reason": "A monthly service catalog review can identify proposal opportunities without noise.",
+        },
+        "topic": "Turbo Services diensten SEO en lokale vindbaarheid",
+        "focus": "service pages, local SEO, metadata, schema",
+    },
+    {
+        "job_id": "monthly_rookdetectie_geuropsporing_watch",
+        "name": "Monthly Rookdetectie Geuropsporing Watch",
+        "description": "Review rookdetectie as rooktest/geuropsporing for rioolgeur and riolering context.",
+        "cadence": {
+            "frequency": "monthly",
+            "suggested_day": "First Wednesday",
+            "reason": "Rookdetectie service intent should stay aligned with geuropsporing, not fire safety.",
+        },
+        "topic": "rookdetectie geuropsporing SEO voor Turbo Services",
+        "focus": "rooktest, rioolgeur, geuropsporing, riolering, service landing pages",
+        "service": "rookdetectie",
+    },
+]
+
+
 def _clean_string(value: Any) -> str:
     return value.strip() if isinstance(value, str) else ""
 
@@ -134,6 +240,37 @@ def _result_text(result: dict) -> str:
         _clean_string(result.get(key)).lower()
         for key in ("title", "url", "snippet")
     )
+
+
+def _job_response(job: dict) -> dict:
+    response = {
+        **job,
+        "enabled_by_default": False,
+        "pipeline": JOB_PIPELINE,
+        "approval_required": True,
+        "allowed_actions": ALLOWED_JOB_ACTIONS,
+        "forbidden_actions": FORBIDDEN_JOB_ACTIONS,
+    }
+    service_intent = resolve_service_intent(
+        " ".join(
+            _clean_string(response.get(key))
+            for key in ("topic", "focus", "service")
+        )
+    )
+    if service_intent:
+        response["service_intent"] = service_intent
+    return response
+
+
+def list_intelligence_jobs() -> list[dict]:
+    return [_job_response(job) for job in JOB_DEFINITIONS]
+
+
+def get_intelligence_job(job_id: str) -> dict | None:
+    for job in JOB_DEFINITIONS:
+        if job["job_id"] == job_id:
+            return _job_response(job)
+    return None
 
 
 def is_online_intelligence_runner_enabled() -> bool:
@@ -453,6 +590,19 @@ async def research_plan(request: Request):
         focus=_clean_string(payload.get("focus")),
         service=_clean_string(payload.get("service")),
     )
+
+
+@router.get("/jobs")
+def intelligence_jobs():
+    return {"ok": True, "jobs": list_intelligence_jobs()}
+
+
+@router.get("/jobs/{job_id}")
+def intelligence_job(job_id: str):
+    job = get_intelligence_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Intelligence job not found")
+    return {"ok": True, "job": job}
 
 
 @router.post("/run-research")

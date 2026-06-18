@@ -11,7 +11,9 @@ The landing page opportunities integration prepares a read-only dry-run response
 
 The status endpoint reports whether the existing Google Ads and GA4 client modules are available and appear configured. It does not expose tokens, account IDs, property IDs, credential paths, or secrets.
 
-The landing-page endpoint returns provider status, normalized inputs, empty signals, empty opportunities, approval gates, and notes. This step does not call Google Ads or GA4 because online/provider reads are not enabled here.
+The landing-page endpoint returns provider status, normalized inputs, signals, opportunities, approval gates, and notes. Live reads are disabled by default. Set `read_live=true` in the request and enable `ENABLE_GOOGLE_ADS_READS` or `ENABLE_GA4_READS` to attempt read-only provider calls.
+
+When live reads are disabled or configuration is incomplete, the endpoint returns safe skipped, disabled, or not-configured statuses without crashing. Responses do not expose secrets, credential paths, account IDs, property IDs, tokens, refresh tokens, or client IDs.
 
 ## Safety
 

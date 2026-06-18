@@ -23,7 +23,7 @@ Response includes the topic, focus, optional `service_intent`, research queries,
 
 `/api/intelligence/run-research` is disabled by default with `ENABLE_ONLINE_INTELLIGENCE_RUNNER`. Enabled values are `1`, `true`, `yes`, and `on`. When disabled, it returns the research plan and does not call an online provider.
 
-When enabled, the runner executes only capped research queries and returns compact result metadata: title, URL, snippet, and source. If no safe provider is configured, it returns `provider_not_configured` without crashing. The current implementation does not add paid dependencies, hardcode API keys, scrape full pages, write files, schedule tasks, call OpenAI, deploy, or touch GitHub.
+When enabled, the runner executes only capped research queries and returns compact result metadata: title, URL, snippet, and source. Configure the provider with `ONLINE_INTELLIGENCE_PROVIDER`; supported values are `none` and `brave`. Brave search requires `BRAVE_SEARCH_API_KEY`. If no safe provider or key is configured, it returns `provider_not_configured` or a missing-key note without crashing. The implementation does not add paid dependencies, hardcode API keys, scrape full pages, write files, schedule tasks, call OpenAI, deploy, or touch GitHub.
 
 ## Service Intent
 

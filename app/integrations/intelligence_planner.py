@@ -1,6 +1,7 @@
 import os
 from typing import Any
 
+import requests
 from fastapi import APIRouter, HTTPException, Request
 
 from app.integrations.service_intent import resolve_service_intent
@@ -102,19 +103,80 @@ def is_online_intelligence_runner_enabled() -> bool:
 
 class OnlineSearchProvider:
     name = "provider_not_configured"
+    missing_config_note = "provider_not_configured"
 
     def search(self, query: str, max_results: int) -> dict:
         return {
             "ok": False,
-            "error": "provider_not_configured",
+            "error": self.missing_config_note,
             "provider": self.name,
             "query": query,
             "results": [],
         }
 
 
+class BraveSearchProvider:
+    name = "brave"
+
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+
+    def search(self, query: str, max_results: int) -> dict:
+        try:
+            response = requests.get(
+                "https://api.search.brave.com/res/v1/web/search",
+                headers={
+                    "Accept": "application/json",
+                    "X-Subscription-Token": self.api_key,
+                },
+                params={"q": query, "count": max_results},
+                timeout=10,
+            )
+            response.raise_for_status()
+            data = response.json()
+        except Exception as exc:
+            return {
+                "ok": False,
+                "error": f"provider_error:{exc.__class__.__name__}",
+                "provider": self.name,
+                "query": query,
+                "results": [],
+            }
+
+        results = []
+        for item in (data.get("web") or {}).get("results", [])[:max_results]:
+            results.append(
+                {
+                    "title": _clean_string(item.get("title")),
+                    "url": _clean_string(item.get("url")),
+                    "snippet": _clean_string(item.get("description")),
+                    "source": self.name,
+                }
+            )
+
+        return {
+            "ok": True,
+            "provider": self.name,
+            "query": query,
+            "results": results,
+        }
+
+
 def get_online_search_provider() -> OnlineSearchProvider:
-    return OnlineSearchProvider()
+    provider = os.getenv("ONLINE_INTELLIGENCE_PROVIDER", "none").strip().lower()
+    if provider in {"", "none"}:
+        return OnlineSearchProvider()
+    if provider == "brave":
+        api_key = os.getenv("BRAVE_SEARCH_API_KEY", "").strip()
+        if not api_key:
+            missing = OnlineSearchProvider()
+            missing.missing_config_note = "missing BRAVE_SEARCH_API_KEY"
+            return missing
+        return BraveSearchProvider(api_key)
+
+    unknown = OnlineSearchProvider()
+    unknown.missing_config_note = f"unsupported_provider:{provider}"
+    return unknown
 
 
 def build_research_plan(topic: str, focus: str = "", service: str = "") -> dict:

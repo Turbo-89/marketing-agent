@@ -11,6 +11,7 @@ The intelligence research planner prepares read-only dry-run plans for AI, SEO, 
 - `POST /api/intelligence/analyze-results`
 - `GET /api/intelligence/jobs`
 - `GET /api/intelligence/jobs/{job_id}`
+- `POST /api/intelligence/jobs/{job_id}/dry-run`
 
 Request:
 
@@ -31,6 +32,8 @@ When enabled, the runner executes only capped research queries and returns compa
 `/api/intelligence/analyze-results` analyzes only compact run results already provided in the request. It treats titles, snippets, and URLs as signals rather than proven facts, returns possible Turbo Services impact areas, and proposes approval-required review actions. It does not fetch pages, call OpenAI, write files, schedule jobs, deploy, mutate strategy, or touch GitHub.
 
 `/api/intelligence/jobs` and `/api/intelligence/jobs/{job_id}` return static read-only definitions for future periodic intelligence jobs. They do not execute jobs, schedule background tasks, call online providers, write files, mutate strategy, deploy, or touch GitHub. All jobs are disabled by default and require approval before any proposed action.
+
+`/api/intelligence/jobs/{job_id}/dry-run` manually composes the existing research plan, gated research runner, analyzer, and proposal report for one job. It does not schedule anything or perform forbidden actions; all recommendations remain proposals with approval required.
 
 ## Service Intent
 

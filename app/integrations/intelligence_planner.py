@@ -578,6 +578,57 @@ def analyze_research_results(topic: str, service: str = "", research_run: Any = 
     }
 
 
+def build_job_dry_run_report(
+    job_id: str,
+    max_queries: int = 3,
+    max_results_per_query: int = 5,
+) -> dict | None:
+    job = get_intelligence_job(job_id)
+    if job is None:
+        return None
+
+    research_plan = build_research_plan(
+        topic=job["topic"],
+        focus=job["focus"],
+        service=_clean_string(job.get("service")),
+    )
+    if is_online_intelligence_runner_enabled():
+        research_run = run_research_plan(
+            research_plan=research_plan,
+            max_queries=max_queries,
+            max_results_per_query=max_results_per_query,
+        )
+    else:
+        research_run = {
+            "ok": False,
+            "error": "online_intelligence_runner_disabled",
+            "research_plan": research_plan,
+        }
+
+    analysis = analyze_research_results(
+        topic=job["topic"],
+        service=_clean_string(job.get("service")),
+        research_run=research_run,
+    )
+
+    return {
+        "ok": True,
+        "job": job,
+        "research_plan": research_plan,
+        "research_run": research_run,
+        "analysis": analysis,
+        "proposal_report": {
+            "summary": (
+                "Manual read-only dry run completed. No files, ads, deployments, "
+                "GitHub actions, strategy changes, or scheduled jobs were created."
+            ),
+            "recommended_actions": analysis["recommended_actions"],
+            "approval_required": True,
+            "forbidden_actions_respected": True,
+        },
+    }
+
+
 @router.post("/research-plan")
 async def research_plan(request: Request):
     payload = await request.json()
@@ -595,6 +646,19 @@ async def research_plan(request: Request):
 @router.get("/jobs")
 def intelligence_jobs():
     return {"ok": True, "jobs": list_intelligence_jobs()}
+
+
+@router.post("/jobs/{job_id}/dry-run")
+async def intelligence_job_dry_run(job_id: str, request: Request):
+    payload = await request.json()
+    report = build_job_dry_run_report(
+        job_id=job_id,
+        max_queries=payload.get("max_queries", 3),
+        max_results_per_query=payload.get("max_results_per_query", 5),
+    )
+    if report is None:
+        raise HTTPException(status_code=404, detail="Intelligence job not found")
+    return report
 
 
 @router.get("/jobs/{job_id}")

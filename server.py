@@ -26,6 +26,7 @@ from app.integrations.service_intent import (
 )
 from app.integrations.intelligence_planner import router as intelligence_planner_router
 from app.integrations.task_planner import router as task_planner_router
+from app.integrations.landing_page_opportunities import router as opportunities_router
 from app.memory.memory_engine import MemoryEngine
 from app.router.engine import RouterEngine
 from app.api.knowledge_preview_api import router as knowledge_preview_router
@@ -59,6 +60,7 @@ app.include_router(local_fs_router, prefix="/api/fs")
 app.include_router(context_builder_router, prefix="/api/context")
 app.include_router(intelligence_planner_router, prefix="/api/intelligence")
 app.include_router(task_planner_router, prefix="/api/tasks")
+app.include_router(opportunities_router, prefix="/api/opportunities")
 app.include_router(stage_router, prefix="/api")
 app.include_router(auth_router)
 app.include_router(chat_router)

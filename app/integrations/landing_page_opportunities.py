@@ -1,5 +1,6 @@
 import importlib.util
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +35,17 @@ NEGATIVE_SERVICE_TERMS = (
     "branddetectie",
     "brandalarm",
 )
+REGION_TERMS = (
+    "antwerpen",
+    "mechelen",
+    "boom",
+    "bornem",
+    "kontich",
+    "mortsel",
+    "wilrijk",
+    "deurne",
+    "berchem",
+)
 
 
 def _clean_string(value: Any) -> str:
@@ -48,6 +60,17 @@ def _clamp_max_opportunities(value: Any) -> int:
 
 def _safe_bool(value: Any, default: bool = True) -> bool:
     return value if isinstance(value, bool) else default
+
+
+def _safe_number(value: Any) -> float:
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _clamp_score(value: float) -> int:
+    return max(0, min(100, int(round(value))))
 
 
 def _env_enabled(name: str) -> bool:
@@ -233,54 +256,165 @@ def _signal_text(signal: dict) -> str:
     )
 
 
+def _normalise_sample_signal(signal: dict) -> dict:
+    source = _clean_string(signal.get("source")) or _clean_string(signal.get("provider")) or "sample"
+    provider = "sample" if source == "sample" else source
+    normalised = {
+        "provider": provider,
+        "source": source,
+        "sample": True,
+        "type": _clean_string(signal.get("type")) or "sample",
+        "search_term": _clean_string(signal.get("search_term") or signal.get("query")),
+        "campaign": _clean_string(signal.get("campaign")),
+        "ad_group": _clean_string(signal.get("ad_group")),
+        "landing_page_path": _clean_string(signal.get("landing_page_path") or signal.get("page_path")),
+        "source_medium": _clean_string(signal.get("source_medium")),
+        "clicks": _safe_number(signal.get("clicks")),
+        "impressions": _safe_number(signal.get("impressions")),
+        "cost": _safe_number(signal.get("cost")),
+        "conversions": _safe_number(signal.get("conversions")),
+        "sessions": _safe_number(signal.get("sessions")),
+        "users": _safe_number(signal.get("users")),
+        "engagement_rate": _safe_number(signal.get("engagement_rate")),
+    }
+    if normalised["search_term"]:
+        normalised["type"] = "search_term"
+    elif normalised["landing_page_path"]:
+        normalised["type"] = "landing_page"
+    return normalised
+
+
+def _sample_signals(payload: dict, dry_run: bool) -> list[dict]:
+    if not dry_run:
+        return []
+    value = payload.get("sample_signals")
+    if not isinstance(value, list):
+        return []
+    return [_normalise_sample_signal(item) for item in value if isinstance(item, dict)]
+
+
 def _signal_service_intent(signal: dict, fallback_service: str) -> dict | None:
     return resolve_service_intent(" ".join([_signal_text(signal), fallback_service]))
 
 
-def _opportunity_for_signal(signal: dict, inputs: dict) -> dict | None:
+def _detect_region(signal: dict, fallback_region: str) -> str:
+    if fallback_region:
+        return fallback_region
+    text = _signal_text(signal)
+    for region in REGION_TERMS:
+        if region in text:
+            return region.title()
+    path = _clean_string(signal.get("landing_page_path")).lower()
+    parts = [part for part in re.split(r"[-/_\s]+", path) if part]
+    for part in parts:
+        if part in REGION_TERMS:
+            return part.title()
+    return ""
+
+
+def _is_generic_page(signal: dict, service_intent: dict | None, region: str) -> bool:
+    path = _clean_string(signal.get("landing_page_path")).lower()
+    if not path:
+        return False
+    has_service = False
+    if service_intent:
+        has_service = any(term in path for term in service_intent.get("positive_terms", []))
+    has_region = bool(region and region.lower() in path)
+    return not has_service or not has_region
+
+
+def _group_key(signal: dict, inputs: dict) -> tuple:
+    service_intent = _signal_service_intent(signal, inputs["service"])
+    canonical_service = service_intent.get("canonical_service") if service_intent else _clean_string(inputs["service"]) or "unknown_service"
+    region = _detect_region(signal, inputs["region"])
     text = _signal_text(signal)
     if any(term in text for term in NEGATIVE_SERVICE_TERMS):
-        return {
-            "type": "negative_keyword_review",
-            "source": signal["provider"],
-            "reason": "Signal appears related to fire-safety wording and should be reviewed as a negative context.",
-            "approval_required": True,
-        }
+        return (canonical_service, region, "negative_keyword_review")
+    if signal.get("type") == "landing_page":
+        if _is_generic_page(signal, service_intent, region):
+            return (canonical_service, region, "metadata_update")
+        return (canonical_service, region, "improve_existing_landing_page")
+    return (canonical_service, region, "new_landing_page" if service_intent else "ads_keyword_review")
 
-    service_intent = _signal_service_intent(signal, inputs["service"])
-    if signal["provider"] == "google_ads":
-        opportunity_type = "new_landing_page" if service_intent else "ads_keyword_review"
-        reason = "Search term signal may indicate landing-page or keyword-review demand."
-    else:
-        opportunity_type = "improve_existing_landing_page"
-        reason = "GA4 landing-page signal may indicate an existing page to review."
 
-    opportunity = {
-        "type": opportunity_type,
-        "source": signal["provider"],
-        "reason": reason,
-        "region": inputs["region"],
-        "approval_required": True,
+def _group_signals(signals: list[dict], inputs: dict) -> dict:
+    groups = {}
+    for signal in signals:
+        key = _group_key(signal, inputs)
+        group = groups.setdefault(key, {"signals": [], "service_intent": _signal_service_intent(signal, inputs["service"])})
+        group["signals"].append(signal)
+        if group["service_intent"] is None:
+            group["service_intent"] = _signal_service_intent(signal, inputs["service"])
+    return groups
+
+
+def _score_group(signals: list[dict], opportunity_type: str) -> dict:
+    impressions = sum(_safe_number(signal.get("impressions")) for signal in signals)
+    clicks = sum(_safe_number(signal.get("clicks")) for signal in signals)
+    cost = sum(_safe_number(signal.get("cost")) for signal in signals)
+    conversions = sum(_safe_number(signal.get("conversions")) for signal in signals)
+    sessions = sum(_safe_number(signal.get("sessions")) for signal in signals)
+    users = sum(_safe_number(signal.get("users")) for signal in signals)
+    engagement_values = [_safe_number(signal.get("engagement_rate")) for signal in signals if signal.get("engagement_rate") is not None]
+    avg_engagement = sum(engagement_values) / len(engagement_values) if engagement_values else 0
+
+    demand = _clamp_score((impressions / 20) + (clicks * 8) + (sessions / 5) + (users / 5))
+    conversion_or_value = _clamp_score((conversions * 25) + min(cost * 2, 30) + (avg_engagement * 40))
+    content_gap = 80 if opportunity_type == "new_landing_page" else 65 if opportunity_type in {"metadata_update", "internal_linking"} else 35
+    local_relevance = 80 if any(_detect_region(signal, "") for signal in signals) else 45
+    confidence = _clamp_score(35 + (len(signals) * 15) + (20 if any(signal.get("sample") for signal in signals) else 35))
+    score = _clamp_score(
+        demand * 0.35
+        + conversion_or_value * 0.2
+        + content_gap * 0.2
+        + local_relevance * 0.15
+        + confidence * 0.1
+    )
+    return {
+        "score": score,
+        "priority": "high" if score >= 70 else "medium" if score >= 40 else "low",
+        "score_breakdown": {
+            "demand": demand,
+            "conversion_or_value": conversion_or_value,
+            "content_gap": content_gap,
+            "local_relevance": local_relevance,
+            "confidence": confidence,
+        },
     }
-    if service_intent:
-        opportunity["service_intent"] = service_intent
-    return opportunity
+
+
+def _opportunity_reason(opportunity_type: str) -> str:
+    reasons = {
+        "new_landing_page": "High demand signal without matching landing-page evidence suggests a possible new landing page.",
+        "improve_existing_landing_page": "Existing landing-page signal suggests a possible page improvement review.",
+        "metadata_update": "Service or location terms appear on a generic page, suggesting metadata review.",
+        "schema_update": "Service/location evidence may require structured data review.",
+        "internal_linking": "Service/location evidence may need internal linking review.",
+        "ads_keyword_review": "Search term evidence suggests keyword review.",
+        "negative_keyword_review": "Fire-safety wording should be reviewed as negative context, not service positioning.",
+    }
+    return reasons.get(opportunity_type, "Signal group suggests a review opportunity.")
 
 
 def _build_opportunities(signals: list[dict], inputs: dict) -> list[dict]:
     opportunities = []
-    seen = set()
-    for signal in signals:
-        opportunity = _opportunity_for_signal(signal, inputs)
-        if not opportunity:
-            continue
-        key = (opportunity["type"], opportunity["source"], str(opportunity.get("service_intent")))
-        if key in seen:
-            continue
-        seen.add(key)
+    groups = _group_signals(signals, inputs)
+    for (canonical_service, region, opportunity_type), group in groups.items():
+        scored = _score_group(group["signals"], opportunity_type)
+        opportunity = {
+            "type": opportunity_type,
+            "canonical_service": canonical_service,
+            "region": region,
+            "sources": sorted({signal.get("provider", "unknown") for signal in group["signals"]}),
+            "reason": _opportunity_reason(opportunity_type),
+            "evidence_count": len(group["signals"]),
+            "approval_required": True,
+            **scored,
+        }
+        if group["service_intent"]:
+            opportunity["service_intent"] = group["service_intent"]
         opportunities.append(opportunity)
-        if len(opportunities) >= inputs["max_opportunities"]:
-            break
+    opportunities.sort(key=lambda item: item["score"], reverse=True)
     return opportunities
 
 
@@ -293,8 +427,9 @@ def build_landing_page_opportunities(payload: dict) -> dict:
     status = provider_status()
     google_ads_result = _read_google_ads_signals(inputs, status)
     ga4_result = _read_ga4_signals(inputs, status)
-    signals = google_ads_result["signals"] + ga4_result["signals"]
-    opportunities = _build_opportunities(signals, inputs)
+    sample_signals = _sample_signals(payload, dry_run)
+    signals = google_ads_result["signals"] + ga4_result["signals"] + sample_signals
+    opportunities = _build_opportunities(signals, inputs)[: inputs["max_opportunities"]]
 
     response = {
         "ok": True,

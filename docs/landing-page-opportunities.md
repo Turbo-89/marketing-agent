@@ -15,6 +15,10 @@ The landing-page endpoint returns provider status, normalized inputs, signals, o
 
 When live reads are disabled or configuration is incomplete, the endpoint returns safe skipped, disabled, or not-configured statuses without crashing. Responses do not expose secrets, credential paths, account IDs, property IDs, tokens, refresh tokens, or client IDs.
 
+For validation without live credentials, `POST /api/opportunities/landing-pages` accepts `sample_signals` only when `dry_run=true`. Sample signals are marked as sample data and are never treated as live provider data.
+
+Available signals are grouped into scored opportunities with `score`, `priority`, and a `score_breakdown` for demand, conversion or value, content gap, local relevance, and confidence. Opportunities are sorted by score descending and always keep `approval_required=true`.
+
 ## Safety
 
 The endpoints are read-only. They do not write files, change ads, deploy, publish, merge, push to live, execute shell commands, call OpenAI, call GitHub, schedule jobs, or make internet calls.

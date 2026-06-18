@@ -1,31 +1,11 @@
-from openai import OpenAI
+from __future__ import annotations
+
+from app.knowledge.markdown_article_writer import MarkdownArticleWriter
+
 
 class KnowledgeWriter:
     def __init__(self):
-        self.client = OpenAI()
+        self.writer = MarkdownArticleWriter()
 
-    def write_article(self, title: str, service: str, region: str, intent: str):
-        prompt = f"""
-Schrijf een informatief kennisbank artikel over:
-Titel: {title}
-Dienst: {service}
-Regio: {region}
-Intentie: {intent}
-
-Vereisten:
-- korte zinnen
-- technisch correct
-- lokale relevantie voor regio {region}
-- geen overbodige taal
-- geen storytelling
-- enkel feitelijke SEO-geschikte uitleg
-
-Geef inhoud als pure tekst. Geen markdown.
-"""
-
-        result = self.client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}]
-        )
-
-        return result.choices[0].message["content"]
+    def write_article(self, topic: dict) -> str:
+        return self.writer.write_article(topic)

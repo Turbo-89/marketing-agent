@@ -1,7 +1,9 @@
-import os
+from __future__ import annotations
+
 from app.knowledge.knowledge_planner import KnowledgePlanner
 from app.knowledge.knowledge_writer import KnowledgeWriter
 from app.knowledge_generator import KnowledgeGenerator
+
 
 class KnowledgeAgent:
     def __init__(self):
@@ -9,31 +11,40 @@ class KnowledgeAgent:
         self.writer = KnowledgeWriter()
         self.generator = KnowledgeGenerator()
 
-    def run(self):
-        topics = self.planner.detect_topics()
+    def run(
+        self,
+        csv_path: str | None = None,
+        limit: int = 10,
+        min_clicks: int = 1,
+        overwrite: bool = False,
+        stage: bool = True,
+    ) -> list[dict]:
+        topics = self.planner.detect_topics(
+            csv_path=csv_path,
+            limit=limit,
+            min_clicks=min_clicks,
+        )
+
         results = []
 
-        for t in topics:
-            slug = t["slug"]
-            path = f"app/kennisbank/{slug}/page.tsx"
+        for topic in topics:
+            markdown = self.writer.write_article(topic)
 
-            # overslaan als pagina reeds bestaat
-            if os.path.exists(os.path.join("generated", path)):
-                continue
-
-            article = self.writer.write_article(
-                title=t["title"],
-                service=t["service"],
-                region=t["region"],
-                intent=t["intent"]
+            generated = self.generator.generate(
+                slug=topic["slug"],
+                markdown=markdown,
+                overwrite=overwrite,
+                stage=stage,
             )
 
-            created = self.generator.generate(
-                slug=slug,
-                title=t["title"],
-                body=article
+            results.append(
+                {
+                    "seed_keyword": topic["seed_keyword"],
+                    "service": topic["service"],
+                    "clicks": topic["clicks"],
+                    "impressions": topic["impressions"],
+                    **generated,
+                }
             )
-
-            results.append(created)
 
         return results

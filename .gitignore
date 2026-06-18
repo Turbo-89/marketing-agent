@@ -1,18 +1,87 @@
-# Python venv
+# -------------------------
+# Python / Virtual Env
+# -------------------------
 .venv/
 venv/
-
-# Python cache
-__pycache__/
+ENV/
+env/
 *.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.py[cod]
+*$py.class
 
-# Env files
+# -------------------------
+# Secrets & Credentials
+# -------------------------
 .env
 .env.*
+service_account.json
+firebase-key.json
+credentials.json
+*.pem
+*.p12
+*.key
+*.crt
 
+# -------------------------
+# Generated content
+# -------------------------
+generated/
+generated/pages/
+generated/images/
+generated/videos/
+
+# Prevent accidental binary pushes (OpenAI / FAL)
+*.mp4
+*.webm
+*.avi
+*.mov
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+# -------------------------
 # Logs
+# -------------------------
 logs/
+*.log
+*.out
+*.err
 
-# Editor
+# -------------------------
+# Build & cache artifacts
+# -------------------------
+*.egg-info/
+.eggs/
+build/
+dist/
+target/
+.cache/
+.pytest_cache/
+.mypy_cache/
+coverage/
+pytest.debug.log
+
+# -------------------------
+# IDE / Editor folders
+# -------------------------
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# -------------------------
+# Local dev tools
+# -------------------------
+.DS_Store
+Thumbs.db
+
+# -------------------------
+# Uvicorn reload cache
+# -------------------------
+watchfiles_cache/
+watchgod/
+

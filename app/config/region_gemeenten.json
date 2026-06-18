@@ -1,0 +1,71 @@
+{
+  "antwerpen-stad": [
+    "Antwerpen", "Berchem", "Borgerhout", "Deurne", "Merksem", "Hoboken", "Wilrijk"
+  ],
+  "antwerpen-noordrand": [
+    "Brasschaat", "Schoten", "Edegem", "Mortsel", "Boechout", "Wijnegem", "Wommelgem", "Borsbeek"
+  ],
+  "antwerpen-zuidrand": [
+    "Hemiksem", "Aartselaar", "Hove", "Lint", "Kontich"
+  ],
+  "ruppelstreek": [
+    "Boom", "Rumst", "Reet", "Terhagen", "Niel", "Schelle"
+  ],
+  "klein-brabant": [
+    "Bornem", "Mariekerke", "Weert", "Hingene", "Puurs-Sint-Amands"
+  ],
+  "waasland": [
+    "Beveren", "Kruibeke", "Zwijndrecht", "Sint-Gillis-Waas", "Stekene", "Lokeren"
+  ],
+  "mechelen-rivierenland": [
+    "Mechelen", "Willebroek", "Sint-Katelijne-Waver", "Heffen", "Leest", "Hombeek"
+  ],
+  "lier-neteland": [
+    "Lier", "Emblem", "Ranst", "Broechem", "Oelegem", "Kasterlee", "Herentals"
+  ],
+  "kempen-noord": [
+    "Turnhout", "Arendonk", "Retie", "Kasterlee", "Hoogstraten", "Rijkevorsel"
+  ],
+  "kempen-zuid": [
+    "Geel", "Mol", "Meerhout", "Laakdal", "Herselt"
+  ],
+  "brussel-centrum": [
+    "Brussel", "Elsene", "Etterbeek", "Sint-Gillis"
+  ],
+  "brussel-noord": [
+    "Schaarbeek", "Evere", "Jette", "Ganshoren"
+  ],
+  "brussel-zuid": [
+    "Anderlecht", "Vorst", "Ukkel"
+  ],
+  "noordrand-brussel": [
+    "Vilvoorde", "Machelen", "Zaventem", "Grimbergen"
+  ],
+  "druivenstreek": [
+    "Overijse", "Hoeilaart", "Tervuren"
+  ],
+  "pajottenland": [
+    "Lennik", "Dilbeek", "Roosdaal", "Gooik", "Herne", "Galmaarden"
+  ],
+  "leuven-dijleland": [
+    "Leuven", "Herent", "Bertem", "Kortenberg"
+  ],
+  "hageland": [
+    "Aarschot", "Tielt-Winge", "Bekkevoort", "Scherpenheuvel-Zichem"
+  ],
+  "durmestreek": [
+    "Hamme", "Dendermonde", "Zele", "Waasmunster"
+  ],
+  "sint-niklaas-regio": [
+    "Sint-Niklaas", "Nieuwkerken", "Belsele", "Elversele"
+  ],
+  "temse-omstreken": [
+    "Temse", "Tielrode", "Steendorp", "Elversele"
+  ],
+  "denderstreek": [
+    "Aalst", "Denderleeuw", "Ninove", "Geraardsbergen", "Lede"
+  ],
+  "scheldeland": [
+    "Aalst", "Dendermonde", "Hamme", "Wetteren", "Wichelen"
+  ]
+}

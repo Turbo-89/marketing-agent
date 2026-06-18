@@ -21,10 +21,10 @@
       ],
       "pricing_intro": "Wij werken met vaste en transparante prijzen, ook ’s avonds en in het weekend:",
       "pricing_items": [
-        "Interventie ontstopping: €160",
-        "Camera-inspectie: €90",
-        "Totaalpakket (ontstopping + camera): €250"
-      ],
+  "Interventie ontstopping: €160",
+  "Camera-inspectie mogelijk als supplement: €90",
+  "Bij combinatie geldt: €160 interventiekost + €90 camera-inspectie"
+],
       "urgency": "Hoe sneller je ingrijpt, hoe kleiner de kans op bijkomende schade zoals geurhinder, overstroming of lekkages. Een korte interventie voorkomt vaak duurdere herstellingen.",
       "cta_title": "Hulp nodig bij een verstopping?",
       "cta_text": "Beschrijf kort het probleem en voeg indien mogelijk een foto toe. Wij koppelen snel terug met een concreet tijdsblok in {REGIO}.",
@@ -50,11 +50,12 @@
         "Analyse van beelden en vaststellen van oorzaak",
         "Advies voor oplossing of herstelling"
       ],
-      "pricing_intro": "Camera-inspectie is aanvullend op ontstopping of afzonderlijk mogelijk:",
-      "pricing_items": [
-        "Camera-inspectie: €90",
-        "Combinatie met ontstopping: €250 totaalpakket"
-      ],
+      "pricing_intro": "Camera-inspectie gebeurt als supplement bovenop de standaard interventiekost:",
+"pricing_items": [
+  "Standaard interventiekost: €160",
+  "Camera-inspectie supplement: €90",
+  "Bij combinatie geldt: €160 interventiekost + €90 camera-inspectie"
+],
       "urgency": "Camera-inspectie is aangewezen bij terugkerende problemen, geurhinder, verzakkingen of onverklaarbare verstoppingen.",
       "cta_title": "Camera-inspectie aanvragen?",
       "cta_text": "Wij brengen uw riolering in {REGIO} exact in beeld en geven een duidelijk advies voor de juiste oplossing.",

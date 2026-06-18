@@ -1,0 +1,210 @@
+{
+  "antwerpen-stad": [
+    "Antwerpen",
+    "Berchem",
+    "Borgerhout",
+    "Deurne",
+    "Hoboken",
+    "Merksem",
+    "Wilrijk"
+  ],
+
+  "antwerpen-noordrand": [
+    "Schoten",
+    "Brasschaat",
+    "Kapellen",
+    "Stabroek",
+    "Wuustwezel",
+    "Essen",
+    "Kalmthout"
+  ],
+
+  "antwerpen-zuidrand": [
+    "Aartselaar",
+    "Edegem",
+    "Hove",
+    "Kontich",
+    "Lint",
+    "Boechout",
+    "Borsbeek"
+  ],
+
+  "ruppelstreek": [
+    "Boom",
+    "Niel",
+    "Schelle",
+    "Hemiksem",
+    "Rumst"
+  ],
+
+  "klein-brabant": [
+    "Bornem",
+    "Puurs-Sint-Amands"
+  ],
+
+  "waasland": [
+    "Beveren",
+    "Kruibeke",
+    "Lokeren",
+    "Sint-Gillis-Waas",
+    "Sint-Niklaas",
+    "Stekene",
+    "Temse",
+    "Waasmunster"
+  ],
+
+  "mechelen-rivierenland": [
+    "Mechelen",
+    "Willebroek",
+    "Bonheiden",
+    "Sint-Katelijne-Waver",
+    "Duffel"
+  ],
+
+  "lier-neteland": [
+    "Lier",
+    "Nijlen",
+    "Zandhoven",
+    "Ranst",
+    "Kessel",
+    "Emblem"
+  ],
+
+  "kempen-noord": [
+    "Turnhout",
+    "Oud-Turnhout",
+    "Vosselaar",
+    "Beerse",
+    "Lille",
+    "Kasterlee",
+    "Retie",
+    "Ravels",
+    "Arendonk"
+  ],
+
+  "kempen-zuid": [
+    "Geel",
+    "Mol",
+    "Balen",
+    "Meerhout",
+    "Laakdal",
+    "Westerlo",
+    "Herselt",
+    "Hulshout",
+    "Heist-op-den-Berg"
+  ],
+
+  "brussel-centrum": [
+    "Brussel",
+    "Elsene",
+    "Etterbeek",
+    "Sint-Gillis",
+    "Anderlecht",
+    "Sint-Joost-ten-Node",
+    "Schaarbeek",
+    "Evere"
+  ],
+
+  "brussel-noord": [
+    "Laken",
+    "Neder-Over-Heembeek",
+    "Haren",
+    "Jette",
+    "Ganshoren",
+    "Koekelberg",
+    "Sint-Agatha-Berchem"
+  ],
+
+  "brussel-zuid": [
+    "Ukkel",
+    "Watermaal-Bosvoorde",
+    "Oudergem",
+    "Vorst"
+  ],
+
+  "noordrand-brussel": [
+    "Vilvoorde",
+    "Machelen",
+    "Zaventem",
+    "Wemmel",
+    "Grimbergen",
+    "Meise"
+  ],
+
+  "druivenstreek": [
+    "Overijse",
+    "Hoeilaart",
+    "Tervuren"
+  ],
+
+  "pajottenland": [
+    "Dilbeek",
+    "Lennik",
+    "Gooik",
+    "Roosdaal",
+    "Ternat",
+    "Pepingen"
+  ],
+
+  "leuven-dijleland": [
+    "Leuven",
+    "Herent",
+    "Kortenberg",
+    "Bertem",
+    "Oud-Heverlee"
+  ],
+
+  "hageland": [
+    "Tienen",
+    "Aarschot",
+    "Diest",
+    "Bekkevoort",
+    "Scherpenheuvel-Zichem",
+    "Landen",
+    "Linter",
+    "Zoutleeuw"
+  ],
+
+  "durmestreek": [
+    "Hamme",
+    "Wetteren",
+    "Wichelen",
+    "Laarne",
+    "Berlare",
+    "Zele"
+  ],
+
+  "sint-niklaas-regio": [
+    "Sint-Niklaas",
+    "Belsele",
+    "Sinaai",
+    "Nieuwkerken-Waas"
+  ],
+
+  "temse-omstreken": [
+    "Temse",
+    "Tielrode",
+    "Elversele",
+    "Steendorp"
+  ],
+
+  "denderstreek": [
+    "Dendermonde",
+    "Aalst",
+    "Ninove",
+    "Geraardsbergen",
+    "Liedekerke",
+    "Haaltert",
+    "Erpe-Mere"
+  ],
+
+  "scheldeland": [
+    "Dendermonde",
+    "Bornem",
+    "Temse",
+    "Puurs-Sint-Amands",
+    "Hemiksem",
+    "Schelle",
+    "Kruibeke"
+  ]
+}

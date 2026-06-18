@@ -1,47 +1,42 @@
-# app/continuous/scheduler.py
-import threading
+import asyncio
 import time
-import traceback
-
 
 class Scheduler:
-    """
-    Eenvoudige achtergrond-scheduler voor TurboAgent.
-    Elke X seconden voert hij alle geregistreerde taken uit.
-    """
-
-    def __init__(self, interval: int = 60):
+    def __init__(self, interval: int = 3600):
         self.interval = interval
-        self.tasks = []
         self.running = False
 
-    # ------------------------------------------------------
-    # Taken registreren
-    # ------------------------------------------------------
-    def add_task(self, func):
-        self.tasks.append(func)
+    async def tick(self):
+        from app.memory import MemoryEngine
+        from app.continuous.memory_summarizer import MemorySummarizer
 
-    # ------------------------------------------------------
-    # Interne loop
-    # ------------------------------------------------------
-    def _loop(self):
-        while self.running:
-            for task in self.tasks:
-                try:
-                    task()
-                except Exception:
-                    print("Scheduler task error:")
-                    print(traceback.format_exc())
+        mem = MemoryEngine()
+        ms = MemorySummarizer()
 
-            time.sleep(self.interval)
+        pending = await mem.list_unprocessed_sessions(limit=5)
 
-    # ------------------------------------------------------
-    # Start de scheduler in een thread
-    # ------------------------------------------------------
-    def start(self):
+        for session_id in pending:
+            logs = await mem.fetch_session_logs(session_id)
+
+            if not logs or len(logs.strip()) < 20:
+                continue
+
+            summary = await ms.summarize(session_id, logs)
+            await mem.store_session_summary(session_id, summary)
+
+        return {"processed_sessions": pending}
+
+    async def start(self):
+        """Asynchrone loop – vereist door asyncio.create_task()."""
         if self.running:
             return
 
         self.running = True
-        t = threading.Thread(target=self._loop, daemon=True)
-        t.start()
+
+        while True:
+            try:
+                await self._tick()
+            except Exception as e:
+                print(f"[Scheduler] Fout in tick: {e}")
+
+            await asyncio.sleep(self.interval)

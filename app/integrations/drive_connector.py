@@ -1,148 +1,96 @@
-# app/integrations/drive_connector.py
-# ------------------------------------------------------------
-# Google Drive Connector – TurboAgent Marketing Ecosysteem
-# ------------------------------------------------------------
-# Functies:
-#   - Upload lokaal bestand → Google Drive
-#   - Download bestand → lokaal
-#   - Bestanden oplijsten
-#   - Metadata ophalen
-#   - Firestore sync + memory-registratie
-#   - Document-tags koppelen
-# ------------------------------------------------------------
-
-import os
-import io
-from typing import Dict, Any, Optional
-
-from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
+from google.oauth2.credentials import Credentials
+import os
 
-from app.memory import MemoryEngine
+TOKENS_DIR = "generated/tokens"
+DRIVE_TOKEN_PATH = os.path.join(TOKENS_DIR, "google_drive.json")
+
+
+def get_drive_service():
+    """
+    Bouwt de Drive service op basis van bestaande OAuth-tokens.
+    Wordt ENKEL aangeroepen na succesvolle OAuth.
+    """
+    if not os.path.exists(DRIVE_TOKEN_PATH):
+        raise RuntimeError("Geen Google Drive token gevonden. OAuth vereist.")
+
+    creds = Credentials.from_authorized_user_file(
+        DRIVE_TOKEN_PATH,
+        scopes=["https://www.googleapis.com/auth/drive.file"]
+    )
+
+    return build("drive", "v3", credentials=creds)
 
 
 class DriveConnector:
     """
-    Google Drive integratie voor TurboAgent.
-    Gebruikt Service Account authenticatie.
+    Lazy Google Drive connector.
+    GEEN API-calls in __init__.
     """
 
-    SCOPES = ["https://www.googleapis.com/auth/drive"]
-    UPLOAD_FOLDER_ID = None  # Optioneel: map-ID waar bestanden in moeten
+    ROOT_FOLDER_NAME = "Turbo Agent"
 
     def __init__(self):
-        service_path = os.path.join(os.getcwd(), "service_account.json")
+        self.service = None
+        self.root_folder_id = None
 
-        creds = service_account.Credentials.from_service_account_file(
-            service_path,
-            scopes=self.SCOPES
+    def connect(self):
+        """
+        Activeert Drive na OAuth.
+        """
+        self.service = get_drive_service()
+        self.root_folder_id = self._ensure_root_folder()
+        return self
+
+    def _ensure_root_folder(self) -> str:
+        """
+        Zorgt dat de root folder bestaat en geeft het folder_id terug.
+        """
+        query = (
+            f"name='{self.ROOT_FOLDER_NAME}' and "
+            "mimeType='application/vnd.google-apps.folder' and "
+            "trashed=false"
         )
 
-        self.drive = build("drive", "v3", credentials=creds)
-        self.memory = MemoryEngine()
-
-    # ------------------------------------------------------------
-    # UPLOAD
-    # ------------------------------------------------------------
-    def upload_file(self, local_path: str, tags: Optional[list] = None) -> Dict[str, Any]:
-        if tags is None:
-            tags = []
-
-        filename = os.path.basename(local_path)
-
-        media = MediaFileUpload(local_path, resumable=True)
-
-        file_metadata = {"name": filename}
-        if self.UPLOAD_FOLDER_ID:
-            file_metadata["parents"] = [self.UPLOAD_FOLDER_ID]
-
-        # Upload naar Google Drive
-        uploaded = self.drive.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields="id, mimeType, size"
-        ).execute()
-
-        drive_id = uploaded["id"]
-        mime = uploaded.get("mimeType", "application/octet-stream")
-        size = int(uploaded.get("size", 0))
-
-        # Opslaan in Firestore Memory
-        doc_id = self.memory.save_document_metadata(
-            filename=filename,
-            mime=mime,
-            size=size,
-            local_path=local_path,
-            drive_file_id=drive_id,
-            tags=tags
+        results = (
+            self.service.files()
+            .list(q=query, spaces="drive", fields="files(id, name)")
+            .execute()
         )
 
-        return {
-            "status": "uploaded",
-            "drive_id": drive_id,
-            "document_id": doc_id,
-            "filename": filename,
-            "size": size,
-            "mime": mime
+        files = results.get("files", [])
+
+        if files:
+            return files[0]["id"]
+
+        metadata = {
+            "name": self.ROOT_FOLDER_NAME,
+            "mimeType": "application/vnd.google-apps.folder",
         }
 
-    # ------------------------------------------------------------
-    # DOWNLOAD
-    # ------------------------------------------------------------
-    def download_file(self, drive_id: str, local_path: str) -> Dict[str, Any]:
-        request = self.drive.files().get_media(fileId=drive_id)
-        fh = io.FileIO(local_path, "wb")
-        downloader = MediaIoBaseDownload(fh, request)
-
-        done = False
-        while not done:
-            _, done = downloader.next_chunk()
-
-        return {"status": "downloaded", "path": local_path}
-
-    # ------------------------------------------------------------
-    # LIST FILES
-    # ------------------------------------------------------------
-    def list_files(self, query: str = None) -> Dict[str, Any]:
-        params = {"pageSize": 50, "fields": "files(id, name, mimeType, size)"}
-
-        if query:
-            params["q"] = query
-
-        res = self.drive.files().list(**params).execute()
-        return {"files": res.get("files", [])}
-
-    # ------------------------------------------------------------
-    # METADATA
-    # ------------------------------------------------------------
-    def get_metadata(self, drive_id: str) -> Dict[str, Any]:
-        meta = self.drive.files().get(
-            fileId=drive_id,
-            fields="id, name, mimeType, size, createdTime, modifiedTime"
-        ).execute()
-        return meta
-
-    # ------------------------------------------------------------
-    # FIRESTORE SYNC
-    # ------------------------------------------------------------
-    def sync_to_memory(self, drive_id: str, tags: Optional[list] = None):
-        meta = self.get_metadata(drive_id)
-
-        if tags is None:
-            tags = []
-
-        doc_id = self.memory.save_document_metadata(
-            filename=meta["name"],
-            mime=meta.get("mimeType", "application/octet-stream"),
-            size=int(meta.get("size", 0)),
-            local_path=None,
-            drive_file_id=drive_id,
-            tags=tags
+        folder = (
+            self.service.files()
+            .create(body=metadata, fields="id")
+            .execute()
         )
 
-        return {
-            "status": "synced",
-            "document_id": doc_id,
-            "drive_id": drive_id
+        return folder["id"]
+
+    def upload_file(self, name: str, content: bytes, mime_type: str):
+        if not self.service:
+            raise RuntimeError("DriveConnector is niet verbonden.")
+
+        from googleapiclient.http import MediaInMemoryUpload
+
+        media = MediaInMemoryUpload(content, mimetype=mime_type)
+
+        file_metadata = {
+            "name": name,
+            "parents": [self.root_folder_id],
         }
+
+        return (
+            self.service.files()
+            .create(body=file_metadata, media_body=media, fields="id")
+            .execute()
+        )

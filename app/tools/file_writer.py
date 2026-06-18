@@ -1,19 +1,25 @@
 import os
+import asyncio
+from pathlib import Path
 
 class FileWriter:
     def __init__(self, base="generated"):
-        self.base = base
+        self.base = Path(base)
+
+    async def run_async(self, relative_path: str, content: str, overwrite=False):
+        return await asyncio.to_thread(
+            self.write, relative_path, content, overwrite
+        )
+
+    def run(self, relative_path: str, content: str, overwrite=False):
+        return self.write(relative_path, content, overwrite)
 
     def write(self, relative_path: str, content: str, overwrite=False):
-        full_path = os.path.join(self.base, relative_path)
+        full_path = self.base / relative_path
+        full_path.parent.mkdir(parents=True, exist_ok=True)
 
-        if os.path.exists(full_path) and not overwrite:
+        if full_path.exists() and not overwrite:
             raise FileExistsError(f"Bestand bestaat al: {full_path}")
 
-        folder = os.path.dirname(full_path)
-        os.makedirs(folder, exist_ok=True)
-
-        with open(full_path, "w", encoding="utf-8") as f:
-            f.write(content)
-
-        return full_path
+        full_path.write_text(content, encoding="utf-8")
+        return str(full_path)

@@ -76,8 +76,25 @@ IMPACT_QUESTIONS = [
     "Should Google Ads keywords or negative keywords change?",
     "Should content templates be updated?",
 ]
-
-
+SIGNAL_CATEGORIES = {
+    "ai_search": ("ai search", "ai overview", "ai overviews", "generative", "answer engine"),
+    "seo": ("seo", "ranking", "organic", "google update", "search update"),
+    "local_seo": ("local seo", "google business profile", "maps", "near me", "local pack"),
+    "structured_data": ("schema", "structured data", "schema.org", "localbusiness", "service schema"),
+    "ads": ("google ads", "ads", "paid search", "keyword", "negative keyword"),
+    "content_strategy": ("content", "template", "landing page", "service page", "topic"),
+    "conversion": ("conversion", "lead", "cta", "form", "call tracking"),
+}
+IMPACT_AREAS = {
+    "landing_pages": ("landing page", "landing pages", "conversion", "cta"),
+    "metadata": ("metadata", "title tag", "meta description", "seo title"),
+    "schema": ("schema", "structured data", "localbusiness", "service schema"),
+    "content_templates": ("content template", "template", "content strategy", "service page"),
+    "google_business_profile": ("google business profile", "gbp", "maps", "local pack"),
+    "google_ads": ("google ads", "paid search", "negative keyword", "ads"),
+    "service_pages": ("service page", "service pages", "local service", "landing page"),
+    "internal_strategy": ("strategy", "update", "ai search", "seo update"),
+}
 def _clean_string(value: Any) -> str:
     return value.strip() if isinstance(value, str) else ""
 
@@ -94,6 +111,29 @@ def _add_query(queries: list[dict], seen: set[str], query: str, purpose: str, ca
         return
     seen.add(key)
     queries.append({"query": query, "purpose": purpose, "category": category})
+
+
+def _empty_category_counts() -> dict:
+    return {category: 0 for category in SIGNAL_CATEGORIES}
+
+
+def _iter_research_results(research_run: Any):
+    if not isinstance(research_run, dict):
+        return
+    for item in research_run.get("executed_queries") or []:
+        if not isinstance(item, dict):
+            continue
+        category = _clean_string(item.get("category"))
+        for result in item.get("results") or []:
+            if isinstance(result, dict):
+                yield category, result
+
+
+def _result_text(result: dict) -> str:
+    return " ".join(
+        _clean_string(result.get(key)).lower()
+        for key in ("title", "url", "snippet")
+    )
 
 
 def is_online_intelligence_runner_enabled() -> bool:
@@ -296,6 +336,111 @@ def run_research_plan(
     }
 
 
+def analyze_research_results(topic: str, service: str = "", research_run: Any = None) -> dict:
+    topic = topic.strip()
+    service = service.strip()
+    service_intent = resolve_service_intent(" ".join(part for part in (topic, service) if part))
+    category_counts = _empty_category_counts()
+    impact_hits = {area: 0 for area in IMPACT_AREAS}
+    notes = []
+    total_results = 0
+
+    if not research_run:
+        notes.append("no_research_run_provided")
+    else:
+        for category, result in _iter_research_results(research_run):
+            total_results += 1
+            text = _result_text(result)
+
+            if category in category_counts:
+                category_counts[category] += 1
+
+            for signal_category, terms in SIGNAL_CATEGORIES.items():
+                if any(term in text for term in terms):
+                    category_counts[signal_category] += 1
+
+            for area, terms in IMPACT_AREAS.items():
+                if any(term in text for term in terms):
+                    impact_hits[area] += 1
+
+    impact = []
+    for area in IMPACT_AREAS:
+        hits = impact_hits[area]
+        if hits > 0:
+            confidence = "medium" if hits < 3 else "high"
+            reason = f"Compact search-result signals mention this area {hits} time(s). Treat as signals, not proven facts."
+        elif not research_run:
+            confidence = "low"
+            reason = "No research run was provided, so this is a baseline review area only."
+        else:
+            confidence = "low"
+            reason = "No direct compact-result signal found; keep as a low-priority review area."
+
+        impact.append(
+            {
+                "area": area,
+                "impact": "possible",
+                "reason": reason,
+                "confidence": confidence,
+            }
+        )
+
+    recommended_actions = [
+        {
+            "action": "Review service landing pages against the observed AI/SEO/local SEO signals.",
+            "type": "review",
+            "requires_approval": True,
+        },
+        {
+            "action": "Review metadata for affected service pages before making any copy changes.",
+            "type": "content_update",
+            "requires_approval": True,
+        },
+        {
+            "action": "Review Service and LocalBusiness schema opportunities before updating markup.",
+            "type": "schema_update",
+            "requires_approval": True,
+        },
+        {
+            "action": "Review Google Ads keywords and negative keywords before changing campaigns.",
+            "type": "ads_review",
+            "requires_approval": True,
+        },
+        {
+            "action": "Review content templates and internal strategy notes before applying updates.",
+            "type": "strategy_review",
+            "requires_approval": True,
+        },
+    ]
+
+    if service_intent:
+        recommended_actions.insert(
+            0,
+            {
+                "action": (
+                    "Review rookdetectie pages as rooktest/geuropsporing for rioolgeur, "
+                    "riolering and afvoer context, not as fire-safety content."
+                ),
+                "type": "review",
+                "requires_approval": True,
+            },
+        )
+
+    return {
+        "ok": True,
+        "topic": topic,
+        **({"service_intent": service_intent} if service_intent else {}),
+        "signal_summary": {
+            "total_results": total_results,
+            "categories": category_counts,
+            "notes": notes,
+        },
+        "turbo_services_impact": impact,
+        "recommended_actions": recommended_actions,
+        "approval_required": True,
+    }
+
+
 @router.post("/research-plan")
 async def research_plan(request: Request):
     payload = await request.json()
@@ -334,4 +479,18 @@ async def run_research(request: Request):
         research_plan=plan,
         max_queries=payload.get("max_queries", 3),
         max_results_per_query=payload.get("max_results_per_query", 5),
+    )
+
+
+@router.post("/analyze-results")
+async def analyze_results(request: Request):
+    payload = await request.json()
+    topic = _clean_string(payload.get("topic"))
+    if not topic:
+        raise HTTPException(status_code=400, detail="topic is required")
+
+    return analyze_research_results(
+        topic=topic,
+        service=_clean_string(payload.get("service")),
+        research_run=payload.get("research_run"),
     )

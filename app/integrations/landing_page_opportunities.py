@@ -18,6 +18,9 @@ from app.integrations.landing_page_final_implementation_review import (
 from app.integrations.landing_page_patch_proposal import (
     build_landing_page_patch_proposal,
 )
+from app.integrations.landing_page_patch_preparation_package import (
+    build_landing_page_patch_preparation_package,
+)
 from app.integrations.service_intent import resolve_service_intent
 
 router = APIRouter()
@@ -498,3 +501,9 @@ async def landing_page_final_implementation_review(request: Request):
 async def landing_page_patch_proposal(request: Request):
     payload = await request.json()
     return build_landing_page_patch_proposal(payload)
+
+
+@router.post("/landing-pages/patch-preparation-package")
+async def landing_page_patch_preparation_package(request: Request):
+    payload = await request.json()
+    return build_landing_page_patch_preparation_package(payload)

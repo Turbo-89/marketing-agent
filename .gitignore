@@ -16,3 +16,9 @@ logs/
 # Editor
 .vscode/
 .idea/
+
+# Generated local outputs
+generated/assets/
+generated/content/
+generated/pages/
+generated/tokens/

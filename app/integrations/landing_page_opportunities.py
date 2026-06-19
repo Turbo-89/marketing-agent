@@ -9,6 +9,9 @@ from fastapi import APIRouter, Request
 from app.integrations.landing_page_implementation_plan import (
     build_landing_page_implementation_plan,
 )
+from app.integrations.landing_page_implementation_draft import (
+    build_landing_page_implementation_draft,
+)
 from app.integrations.service_intent import resolve_service_intent
 
 router = APIRouter()
@@ -471,3 +474,9 @@ async def landing_pages(request: Request):
 async def landing_page_implementation_plan(request: Request):
     payload = await request.json()
     return build_landing_page_implementation_plan(payload)
+
+
+@router.post("/landing-pages/implementation-draft")
+async def landing_page_implementation_draft(request: Request):
+    payload = await request.json()
+    return build_landing_page_implementation_draft(payload)

@@ -39,6 +39,7 @@ from app.integrations.turboservices_review_checklist import router as turboservi
 from app.integrations.turboservices_release_safety_checklist import (
     router as turboservices_release_safety_checklist_router,
 )
+from app.integrations.turboservices_local_preflight import router as turboservices_local_preflight_router
 from app.memory.memory_engine import MemoryEngine
 from app.router.engine import RouterEngine
 from app.api.knowledge_preview_api import router as knowledge_preview_router
@@ -81,6 +82,7 @@ app.include_router(turboservices_target_map_router, prefix="/api/turboservices")
 app.include_router(turboservices_patch_plan_router, prefix="/api/turboservices")
 app.include_router(turboservices_review_checklist_router, prefix="/api/turboservices")
 app.include_router(turboservices_release_safety_checklist_router, prefix="/api/turboservices")
+app.include_router(turboservices_local_preflight_router, prefix="/api/turboservices")
 app.include_router(stage_router, prefix="/api")
 app.include_router(auth_router)
 app.include_router(chat_router)

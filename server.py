@@ -34,6 +34,7 @@ from app.integrations.agent_cockpit_audit_storage_validator import (
 )
 from app.integrations.agent_cockpit_audit_events import router as agent_cockpit_audit_events_router
 from app.integrations.turboservices_target_map import router as turboservices_target_map_router
+from app.integrations.turboservices_patch_plan import router as turboservices_patch_plan_router
 from app.memory.memory_engine import MemoryEngine
 from app.router.engine import RouterEngine
 from app.api.knowledge_preview_api import router as knowledge_preview_router
@@ -73,6 +74,7 @@ app.include_router(agent_cockpit_run_history_router, prefix="/api/agent-cockpit"
 app.include_router(agent_cockpit_audit_storage_validator_router, prefix="/api/agent-cockpit")
 app.include_router(agent_cockpit_audit_events_router, prefix="/api/agent-cockpit")
 app.include_router(turboservices_target_map_router, prefix="/api/turboservices")
+app.include_router(turboservices_patch_plan_router, prefix="/api/turboservices")
 app.include_router(stage_router, prefix="/api")
 app.include_router(auth_router)
 app.include_router(chat_router)
